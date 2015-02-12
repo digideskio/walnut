@@ -1,0 +1,50 @@
+{
+  "name": "walnut",
+  "version": "0.1.0",
+  "description": "zero-config home cloud server",
+  "main": "walnut.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Daplie/walnut.git"
+  },
+  "keywords": [
+    "ssl",
+    "tls",
+    "https",
+    "rsa",
+    "pem",
+    "example",
+    "demo",
+    "test",
+    "openssl",
+    "crt",
+    "p12",
+    "csr",
+    "certificate",
+    "certs",
+    "cert",
+    "key",
+    "private",
+    "public"
+  ],
+  "author": "AJ ONeal <aj@daplie.com> (https://daplie.com)",
+  "license": "Apache2",
+  "bugs": {
+    "url": "https://github.com/Daplie/walnut/issues"
+  },
+  "homepage": "https://github.com/Daplie/walnut",
+  "dependencies": {
+    "bluebird": "^2.9.6",
+    "connect": "^3.3.4",
+    "foreachasync": "^5.0.5",
+    "ssl-root-cas": "^1.1.7",
+    "vhost": "^3.0.0",
+    "bluebird": "^2.9.3",
+    "check-ip-address": "^1.0.0",
+    "express": "^4.11.2",
+    "request": "^2.51.0"
+  }
+}

@@ -37,14 +37,14 @@
   },
   "homepage": "https://github.com/Daplie/walnut",
   "dependencies": {
-    "bluebird": "^2.9.6",
-    "connect": "^3.3.4",
-    "foreachasync": "^5.0.5",
-    "ssl-root-cas": "^1.1.7",
-    "vhost": "^3.0.0",
     "bluebird": "^2.9.3",
     "check-ip-address": "^1.0.0",
+    "cli": "^0.6.5",
+    "connect": "^3.3.4",
     "express": "^4.11.2",
-    "request": "^2.51.0"
+    "foreachasync": "^5.0.5",
+    "request": "^2.51.0",
+    "ssl-root-cas": "^1.1.7",
+    "vhost": "^3.0.0"
   }
 }

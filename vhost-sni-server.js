@@ -1,5 +1,5 @@
 'use strict';
-
+ 
 var https           = require('https')
   , http            = require('http')
   , PromiseA        = require('bluebird').Promise
@@ -9,6 +9,7 @@ var https           = require('https')
   , crypto          = require('crypto')
   , connect         = require('connect')
   , vhost           = require('vhost')
+  , escapeRe        = require('escape-string-regexp')
 
   // connect / express app
   , app             = connect()
@@ -95,6 +96,10 @@ secureServer.listen(securePort, function () {
   console.log("Listening on https://localhost:" + secureServer.address().port);
 });
 
+// TODO localhost-only server shutdown mechanism
+// that closes all sockets, waits for them to finish,
+// and then hands control over completely to respawned server
+
 //
 // Redirect HTTP ot HTTPS
 //
@@ -102,8 +107,37 @@ secureServer.listen(securePort, function () {
 //
 insecureServer = http.createServer();
 insecureServer.on('request', function (req, res) {
+  var insecureRedirects;
+  var host = req.headers.host || '';
+  var url = req.url;
+
+  // because I have domains for which I don't want to pay for SSL certs
+  insecureRedirects = require('./redirects.json').sort(function (a, b) {
+    var hlen = b.from.hostname.length - a.from.hostname.length;
+    var plen;
+    if (!hlen) {
+      plen = b.from.path.length - a.from.path.length;
+      return plen;
+    }
+    return hlen;
+  }).forEach(function (redirect) {
+    var origHost = host;
+    // TODO if '*' === hostname[0], omit '^'
+    host = host.replace(
+      new RegExp('^' + escapeRe(redirect.from.hostname))
+    , redirect.to.hostname
+    );
+    if (host === origHost) {
+      return;
+    }
+    url = url.replace(
+      new RegExp('^' + escapeRe(redirect.from.path))
+    , redirect.to.path
+    );
+  });
+
   var newLocation = 'https://'
-    + req.headers.host.replace(/:\d+/, ':' + port) + req.url
+    + host.replace(/:\d+/, ':' + securePort) + url
     ;
 
   var metaRedirect = ''

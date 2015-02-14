@@ -45,6 +45,7 @@ cli.main(function (args, options) {
       { "name": options.hostname
       , "value": options.answer
       , "type": options.type
+      , "priority": options.priority
       }
     ]
   }).then(function (data) {

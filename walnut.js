@@ -30,5 +30,6 @@ holepunch.run([
 , 'prod.coolaj86.com'
 , 'production.coolaj86.com'
 ], ports).then(function () {
+  // TODO use as module
   require('./vhost-sni-server.js');
 });

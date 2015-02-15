@@ -70,20 +70,22 @@ function getAppContext(domaininfo) {
 
   try {
     localApp = require(path.join(__dirname, 'vhosts', domaininfo.dirname, 'app.js'));
+    if (localApp.create) {
+      // TODO read local config.yml and pass it in
+      // TODO pass in websocket
+      localApp = localApp.create(/*config*/);
+    }
+    if (!localApp.then) {
+      localApp = PromiseA.resolve(localApp);
+    }
   } catch(e) {
     console.error("[ERROR] could not load app.js for " + domaininfo.dirname);
     console.error(e);
-    return PromiseA.resolve(connect().use('/', function (req, res) {
+    localApp = connect().use(function (req, res) {
       res.end('{ "error": { "message": "could not load app.js for ' + domaininfo.dirname + '" } }');
-    }));
-  }
-  if (localApp.create) {
-    // TODO read local config.yml and pass it in
-    // TODO pass in websocket
-    localApp = localApp.create(/*config*/);
-  }
-  if (!localApp.then) {
+    });
     localApp = PromiseA.resolve(localApp);
+    return localApp;
   }
 
   return localApp;
@@ -147,7 +149,7 @@ forEachAsync(rootDomains, loadCerts).then(function () {
       // Note: pathname should NEVER have a leading '/' on its own
       // we always add it explicitly
       domainMergeMap[domaininfo.hostname].apps.use('/' + domaininfo.pathname, localApp);
-      console.info('Loaded ' + domaininfo.hostname + ':' + securePort + domaininfo.pathname);
+      console.info('Loaded ' + domaininfo.hostname + ':' + securePort + '/' + domaininfo.pathname);
     });
   }).then(function () {
     domainMerged.forEach(function (domainApp) {

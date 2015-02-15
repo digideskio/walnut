@@ -68,7 +68,15 @@ require('ssl-root-cas')
 function getAppContext(domaininfo) {
   var localApp;
 
-  localApp = require(path.join(__dirname, 'vhosts', domaininfo.dirname, 'app.js'));
+  try {
+    localApp = require(path.join(__dirname, 'vhosts', domaininfo.dirname, 'app.js'));
+  } catch(e) {
+    console.error("[ERROR] could not load app.js for " + domaininfo.dirname);
+    console.error(e);
+    return PromiseA.resolve(connect().use('/', function (req, res) {
+      res.end('{ "error": { "message": "could not load app.js for ' + domaininfo.dirname + '" } }');
+    }));
+  }
   if (localApp.create) {
     // TODO read local config.yml and pass it in
     // TODO pass in websocket

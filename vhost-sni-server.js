@@ -182,7 +182,7 @@ function runServer() {
     //SNICallback is passed the domain name, see NodeJS docs on TLS
     SNICallback:  function (domainname) {
                     //console.log('SNI:', domain);
-                    return secureContexts[domainname] || secureContext.dummy;
+                    return secureContexts[domainname] || secureContexts.dummy;
                   }
                   // fallback / default dummy certs
   , key:          secureContexts.dummy.certs.key

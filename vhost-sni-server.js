@@ -65,6 +65,14 @@ require('ssl-root-cas')
   .inject()
   ;
 
+function getDummyAppContext(err, msg) {
+  if (err) {
+    console.error(err);
+  }
+  return connect().use(function (req, res) {
+    res.end('{ "error": { "message": "' + msg.replace(/"/g, '\\"') + '" } }');
+  });
+}
 function getAppContext(domaininfo) {
   var localApp;
 
@@ -74,17 +82,21 @@ function getAppContext(domaininfo) {
       // TODO read local config.yml and pass it in
       // TODO pass in websocket
       localApp = localApp.create(/*config*/);
+      if (!localApp) {
+        return getDummyAppContext(err, "[ERROR] no app was returned by app.js for " + domaininfo.driname);
+      }
     }
     if (!localApp.then) {
       localApp = PromiseA.resolve(localApp);
+    } else {
+      return localApp.catch(function (e) {
+        return getDummyAppContext(e, "[ERROR] initialization failed during create() for " + domaininfo.dirname);
+      });
     }
   } catch(e) {
-    console.error("[ERROR] could not load app.js for " + domaininfo.dirname);
-    console.error(e);
-    localApp = connect().use(function (req, res) {
-      res.end('{ "error": { "message": "could not load app.js for ' + domaininfo.dirname + '" } }');
-    });
+    localApp = getDummyAppContext(err, "[ERROR] could not load app.js for " + domaininfo.dirname);
     localApp = PromiseA.resolve(localApp);
+
     return localApp;
   }
 
@@ -148,8 +160,13 @@ forEachAsync(rootDomains, loadCerts).then(function () {
     return getAppContext(domaininfo).then(function (localApp) {
       // Note: pathname should NEVER have a leading '/' on its own
       // we always add it explicitly
-      domainMergeMap[domaininfo.hostname].apps.use('/' + domaininfo.pathname, localApp);
-      console.info('Loaded ' + domaininfo.hostname + ':' + securePort + '/' + domaininfo.pathname);
+      try {
+        domainMergeMap[domaininfo.hostname].apps.use('/' + domaininfo.pathname, localApp);
+        console.info('Loaded ' + domaininfo.hostname + ':' + securePort + '/' + domaininfo.pathname);
+      } catch(e) {
+        console.error('[ERROR] ' + domaininfo.hostname + ':' + securePort + '/' + domaininfo.pathname);
+        console.error(e);
+      }
     });
   }).then(function () {
     domainMerged.forEach(function (domainApp) {

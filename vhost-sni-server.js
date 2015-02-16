@@ -83,7 +83,7 @@ function getAppContext(domaininfo) {
       // TODO pass in websocket
       localApp = localApp.create(/*config*/);
       if (!localApp) {
-        return getDummyAppContext(err, "[ERROR] no app was returned by app.js for " + domaininfo.driname);
+        return getDummyAppContext(null, "[ERROR] no app was returned by app.js for " + domaininfo.driname);
       }
     }
     if (!localApp.then) {
@@ -94,7 +94,7 @@ function getAppContext(domaininfo) {
       });
     }
   } catch(e) {
-    localApp = getDummyAppContext(err, "[ERROR] could not load app.js for " + domaininfo.dirname);
+    localApp = getDummyAppContext(e, "[ERROR] could not load app.js for " + domaininfo.dirname);
     localApp = PromiseA.resolve(localApp);
 
     return localApp;

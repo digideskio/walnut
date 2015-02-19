@@ -1,35 +1,56 @@
-var holepunch = require('./holepunch/beacon');
-var config = require('./device.json')
-var ports ;
+//var holepunch = require('./holepunch/beacon');
+//var config = require('./device.json');
+var securePort = process.argv[2] || 443;
+var insecurePort = process.argv[3] || 80;
+var redirects = require('./redirects.json');
+var path = require('path');
 
-ports = [
-  { private: 22
-  , public: 65022
-  , protocol: 'tcp'
-  , ttl: 0
-  , test: { service: 'ssh' }
-  , testable: false
-  }
-, { private: 65443
-  , public: 65443
-  , protocol: 'tcp'
-  , ttl: 0
-  , test: { service: 'https' }
-  }
-, { private: 65080
-  , public: 65080
-  , protocol: 'tcp'
-  , ttl: 0
-  , test: { service: 'http' }
-  }
-];
+    // force SSL upgrade server
+var certsPath = path.join(__dirname, 'certs');
+// require('ssl-root-cas').inject();
+var vhostsdir = path.join(__dirname, 'vhosts');
 
-holepunch.run([
-  'aj.daplie.com'
-, 'coolaj86.com'
-, 'prod.coolaj86.com'
-, 'production.coolaj86.com'
-], ports).then(function () {
-  // TODO use as module
-  require('./vhost-sni-server.js');
+require('./lib/insecure-server').create(securePort, insecurePort, redirects);
+require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir).then(function () {
+  var ports ;
+
+  ports = [
+    { private: 22
+    , public: 22
+    , protocol: 'tcp'
+    , ttl: 0
+    , test: { service: 'ssh' }
+    , testable: false
+    }
+  , { private: 443
+    , public: 443
+    , protocol: 'tcp'
+    , ttl: 0
+    , test: { service: 'https' }
+    }
+  , { private: 80
+    , public: 80
+    , protocol: 'tcp'
+    , ttl: 0
+    , test: { service: 'http' }
+    }
+  ];
+
+  /*
+  // TODO return a middleware
+  holepunch.run(require('./redirects.json').reduce(function (all, redirect) {
+    if (!all[redirect.from.hostname]) {
+      all[redirect.from.hostname] = true;
+      all.push(redirect.from.hostname)
+    }
+    if (!all[redirect.to.hostname]) {
+      all[redirect.to.hostname] = true;
+      all.push(redirect.to.hostname)
+    }
+
+    return all;
+  }, []), ports).catch(function () {
+    console.error("Couldn't phone home. Oh well");
+  });
+  */
 });

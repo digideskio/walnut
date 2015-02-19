@@ -1,4 +1,5 @@
-//var holepunch = require('./holepunch/beacon');
+'use strict';
+
 //var config = require('./device.json');
 var securePort = process.argv[2] || 443;
 var insecurePort = process.argv[3] || 80;
@@ -10,32 +11,33 @@ var certsPath = path.join(__dirname, 'certs');
 // require('ssl-root-cas').inject();
 var vhostsdir = path.join(__dirname, 'vhosts');
 
-require('./lib/insecure-server').create(securePort, insecurePort, redirects);
-require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir).then(function () {
-  var ports ;
+function phoneHome() {
+  var holepunch = require('./holepunch/beacon');
+  var ports;
 
   ports = [
-    { private: 22
-    , public: 22
+    { private: 65022
+    , public: 65022
     , protocol: 'tcp'
     , ttl: 0
     , test: { service: 'ssh' }
     , testable: false
     }
-  , { private: 443
-    , public: 443
+  , { private: 650443
+    , public: 650443
     , protocol: 'tcp'
     , ttl: 0
     , test: { service: 'https' }
     }
-  , { private: 80
-    , public: 80
+  , { private: 65080
+    , public: 65080
     , protocol: 'tcp'
     , ttl: 0
     , test: { service: 'http' }
     }
   ];
 
+  //
   /*
   // TODO return a middleware
   holepunch.run(require('./redirects.json').reduce(function (all, redirect) {
@@ -52,5 +54,7 @@ require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir).th
   }, []), ports).catch(function () {
     console.error("Couldn't phone home. Oh well");
   });
-  */
-});
+  //*/
+}
+require('./lib/insecure-server').create(securePort, insecurePort, redirects);
+require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir).then(phoneHome);

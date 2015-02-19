@@ -7,3 +7,6 @@ swapon /mnt/data/swapfile
 #cat /etc/dphys-swapfile
 #CONF_SWAPSIZE=1024
 #CONF_SWAPFILE=/mnt/data/swapfile
+
+# TODO
+# there are ramifications to having this on unencrypted disk

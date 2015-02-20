@@ -1,5 +1,7 @@
 'use strict';
 
+console.log('\n\n\nWelcome to WALNUT!');
+
 //var config = require('./device.json');
 var securePort = process.argv[2] || 443;
 var insecurePort = process.argv[3] || 80;

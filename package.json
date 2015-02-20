@@ -51,6 +51,7 @@
     "express": "^4.11.2",
     "express-session": "^1.10.3",
     "foreachasync": "^5.0.5",
+    "http-proxy": "^1.8.1",
     "human-readable-ids": "^1.0.1",
     "nat-pmp": "0.0.3",
     "node-acme": "0.0.1",

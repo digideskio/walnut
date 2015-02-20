@@ -37,8 +37,6 @@ function phoneHome() {
     }
   ];
 
-  //
-  /*
   // TODO return a middleware
   holepunch.run(require('./redirects.json').reduce(function (all, redirect) {
     if (!all[redirect.from.hostname]) {
@@ -54,7 +52,8 @@ function phoneHome() {
   }, []), ports).catch(function () {
     console.error("Couldn't phone home. Oh well");
   });
-  //*/
 }
 require('./lib/insecure-server').create(securePort, insecurePort, redirects);
-require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir).then(phoneHome);
+require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir)
+  //.then(phoneHome)
+  ;

@@ -17,6 +17,12 @@ mkfs.ext4 -j /dev/mapper/WALNUT_ENCRYPTED
 mkdir /mnt/WALNUT_ENCRYPTED
 mount /dev/mapper/WALNUT_ENCRYPTED /mnt/WALNUT_ENCRYPTED
 
+# UNDO
+sudo umount /mnt/WALNUT_ENCRYPTED
+sudo rmdir /mnt/WALNUT_ENCRYPTED
+cryptsetup luksClose WALNUT_ENCRYPTED
+rm /mnt/data/WALNUT_ENCRYPTED.virtual.disk
+
 #pi@pi /s/walnut> time sudo mv /mnt/WALNUT_ENCRYPTED/vhosts/ /mnt/data/vhosts
 #0.49user 4.02system 0:18.60elapsed 24%CPU (0avgtext+0avgdata 2812maxresident)k
 #71160inputs+66152outputs (1major+455minor)pagefaults 0swaps

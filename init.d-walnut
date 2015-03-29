@@ -1,0 +1,39 @@
+### BEGIN INIT INFO
+# Provides:             walnut
+# Required-Start:       $all
+# Required-Stop:        
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    WALNUT Home Cloud
+### END INIT INFO
+
+export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+PIDFILE=/var/run/walnut.pid
+DATE=`date '+%F_%H-%M-%S'`
+
+cd /srv/walnut
+
+case "$1" in
+  start)
+    mkdir -p /srv/walnut/logs
+    mkdir -p /srv/walnut/.forever
+    exec forever -p /srv/walnut/.forever --minUptime=20000 --spinSleepTime=100 --workingDir=/srv/walnut/ -l "/srv/walnut/logs/access.${DATE}.log" -e "/srv/walnut/logs/error.${DATE}.log" --pidFile=$PIDFILE start /srv/walnut/bin/walnut.js
+    ;;
+  stop)
+    exec forever stopall
+    ;;
+  restart) 
+    mkdir -p /srv/walnut/logs
+    mkdir -p /srv/walnut/.forever
+    exec forever stopall
+    exec forever -p /srv/walnut/.forever --minUptime=20000 --spinSleepTime=100 --workingDir=/srv/walnut/ -l "/srv/walnut/logs/access.${DATE}.log" -e "/srv/walnut/logs/error.${DATE}.log" --pidFile=$PIDFILE start /srv/walnut/bin/walnut.js
+    ;;
+  *)
+
+  echo "Usage: /etc/init.d/walnut {start|stop}"
+  exit 1
+  ;;
+esac
+
+exit 0

@@ -2,6 +2,24 @@
 
 console.log('\n\n\nWelcome to WALNUT!');
 
+var fs = require('fs');
+var daplieReadFile = fs.readFileSync;
+var time = 0;
+
+/*
+fs.readFileSync = function (filename) {
+  var now = Date.now();
+  var data = daplieReadFile.apply(fs, arguments);
+  var t;
+
+  t = (Date.now() - now);
+  time += t;
+  console.log('loaded "' + filename + '" in ' + t + 'ms (total ' + time + 'ms)');
+
+  return data;
+};
+*/
+
 //var config = require('./device.json');
 var securePort = process.argv[2] || 443;
 var insecurePort = process.argv[3] || 80;

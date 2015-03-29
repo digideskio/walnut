@@ -2,3 +2,76 @@
 'use strict';
 
 require('../walnut.js');
+
+function eagerLoad() {
+  var PromiseA = require('bluebird').Promise
+  var promise = PromiseA.resolve();
+
+  [ 'passport'
+  , 'knex'
+  , 'bookshelf'
+  , 'express'
+  , 'request'
+  , 'sqlite3'
+  , 'body-parser'
+  , 'express-session'
+  , 'urlrouter'
+  , 'express-lazy'
+  , 'connect-send-error'
+  , 'underscore.string'
+  , 'bookshelf'
+  , 'secret-utils'
+  , 'connect-cors'
+  , 'uuid'
+  , 'connect-recase'
+  , 'passport-local'
+  , 'passport-strategy'
+  , 'passport-http'
+  , 'passport-http-bearer'
+  , 'escape-string-regexp'
+  , 'connect-query'
+  , 'recase'
+  ].forEach(function (name, i) {
+    promise = promise.then(function () {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          require(name);
+          resolve();
+        }, 4);
+      });
+    });
+  });
+
+  [ function () {
+      return require('knex').initialize({
+        client: 'sqlite3'
+      , connection: {
+          filename : ':memory:'
+        }
+      });
+    }
+  , function (knex) {
+      require('bookshelf').initialize(knex);
+    }
+  , function () {
+      require('body-parser').json();
+    }
+  , function () {
+      require('body-parser').urlencoded();
+    }
+  ].forEach(function (fn) {
+    promise = promise.then(function (thing) {
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+         resolve(fn(thing));
+        }, 4);
+      });
+    });
+  })
+
+  promise.then(function () {
+    console.log('Eager Loading Complete');
+  });
+}
+
+setTimeout(eagerLoad, 100);

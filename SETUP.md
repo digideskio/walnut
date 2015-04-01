@@ -16,6 +16,8 @@ vim walnut.js
 # configure redirects
 rsync -av redirects.sample.json redirects.json
 
+# TODO create dummy certs
+
 # create and start upstart service
 sudo rsync -av upstart-walnut /etc/init/walnut.conf
 # for init.d: sudo rsync -av init.d-walnut /etc/init.d/walnut

@@ -73,7 +73,12 @@ function phoneHome() {
     console.error("Couldn't phone home. Oh well");
   });
 }
-require('./lib/insecure-server').create(securePort, insecurePort, redirects);
-require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir)
-  //.then(phoneHome)
-  ;
+
+PromiseA.all(
+  require('./lib/insecure-server').create(securePort, insecurePort, redirects)
+, require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir)
+).then(function () {
+  // TODO use `id' to find user's uid / gid and set to file
+  process.setgid(1000);
+  process.setuid(1000);
+})//.then(phoneHome);

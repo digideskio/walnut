@@ -33,7 +33,7 @@ function eagerLoad() {
   , 'recase'
   ].forEach(function (name, i) {
     promise = promise.then(function () {
-      return new Promise(function (resolve, reject) {
+      return new PromiseA(function (resolve, reject) {
         setTimeout(function () {
           require(name);
           resolve();
@@ -61,7 +61,7 @@ function eagerLoad() {
     }
   ].forEach(function (fn) {
     promise = promise.then(function (thing) {
-      return new Promise(function (resolve) {
+      return new PromiseA(function (resolve) {
         setTimeout(function () {
          resolve(fn(thing));
         }, 4);

@@ -1,0 +1,11 @@
+[
+  { "from": { "hostname": "example.net" , "path": "" }
+  , "to": { "hostname": "example.com", "path": "" }
+  }
+, { "from": { "hostname": "www.example.com" , "path": "" }
+  , "to": { "hostname": "example.com", "path": "" }
+  }
+, { "from": { "hostname": "example.org" , "path": "" }
+  , "to": { "hostname": "example.com", "path": "/services/org" }
+  }
+]

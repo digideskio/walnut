@@ -4,7 +4,7 @@
 require('../walnut.js');
 
 function eagerLoad() {
-  var PromiseA = require('bluebird').Promise
+  var PromiseA = require('bluebird').Promise;
   var promise = PromiseA.resolve();
 
   [ 'passport'
@@ -67,7 +67,7 @@ function eagerLoad() {
         }, 4);
       });
     });
-  })
+  });
 
   promise.then(function () {
     console.log('Eager Loading Complete');

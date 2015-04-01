@@ -2,11 +2,11 @@
 
 console.log('\n\n\nWelcome to WALNUT!');
 
+/*
 var fs = require('fs');
 var daplieReadFile = fs.readFileSync;
 var time = 0;
 
-/*
 fs.readFileSync = function (filename) {
   var now = Date.now();
   var data = daplieReadFile.apply(fs, arguments);

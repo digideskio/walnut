@@ -110,6 +110,7 @@
     "range-parser": "^1.0.2",
     "recase": "1.x",
     "request": "2.44.0",
+    "request-ip": "^1.1.1",
     "scmp": "1.x",
     "secret-utils": "1.x",
     "semver": "^4.3.1",

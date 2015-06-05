@@ -20,6 +20,7 @@ fs.readFileSync = function (filename) {
 };
 */
 
+var PromiseA = require('bluebird').Promise;
 //var config = require('./device.json');
 var securePort = process.argv[2] || 443;
 var insecurePort = process.argv[3] || 80;
@@ -61,11 +62,11 @@ function phoneHome() {
   holepunch.run(require('./redirects.json').reduce(function (all, redirect) {
     if (!all[redirect.from.hostname]) {
       all[redirect.from.hostname] = true;
-      all.push(redirect.from.hostname)
+      all.push(redirect.from.hostname);
     }
     if (!all[redirect.to.hostname]) {
       all[redirect.to.hostname] = true;
-      all.push(redirect.to.hostname)
+      all.push(redirect.to.hostname);
     }
 
     return all;
@@ -73,7 +74,12 @@ function phoneHome() {
     console.error("Couldn't phone home. Oh well");
   });
 }
-require('./lib/insecure-server').create(securePort, insecurePort, redirects);
-require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir)
-  //.then(phoneHome)
-  ;
+
+PromiseA.all([
+  require('./lib/insecure-server').create(securePort, insecurePort, redirects)
+, require('./lib/vhost-sni-server.js').create(securePort, certsPath, vhostsdir)
+]).then(function () {
+  // TODO use `id' to find user's uid / gid and set to file
+  process.setgid(1000);
+  process.setuid(1000);
+});//.then(phoneHome);

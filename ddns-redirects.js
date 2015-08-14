@@ -1,38 +1,52 @@
 #!/usr/bin/env node
 'use strict';
 
-// dig -p 53 @redirect-www.org pi.nadal.daplie.com A
-var updateIp = require('./holepunch/helpers/update-ip.js').update;
+// TODO have a quick timeout
+require('ipify')(function (err, ip) {
+  console.log('ip', ip);
 
-var redirects = require('./redirects');
-var ddns = [];
-var ddnsMap = {};
+  var path = require('path');
+  // dig -p 53 @redirect-www.org pi.nadal.daplie.com A
+  var updateIp = require('./holepunch/helpers/update-ip.js').update;
 
-function add(hostname) {
-  ddns.push({
-    "name": hostname
+  var redirects = require('./redirects');
+  var ddns = [];
+  var ddnsMap = {};
+
+  function add(hostname) {
+    ddns.push({
+      "name": hostname
+    , "answer": ip
+    });
+  }
+
+  redirects.forEach(function (r) {
+    if (!ddnsMap[r.from.hostname.toLowerCase()]) {
+      add(r.from.hostname);
+    }
+    if (!ddnsMap[r.to.hostname.toLowerCase()]) {
+      add(r.to.hostname);
+    }
   });
-}
-redirects.forEach(function (r) {
-  if (!ddnsMap[r.from.hostname.toLowerCase()]) {
-    add(r.from.hostname);
-  }
-  if (!ddnsMap[r.to.hostname.toLowerCase()]) {
-    add(r.to.hostname);
-  }
-});
 
-return updateIp({
-  updater: 'redirect-www.org'
-, port: 65443
-, cacert: null
-, ddns: ddns
-}).then(function (data) {
-  if ('string') {
-    data = JSON.parse(data);
-  }
+  return updateIp({
+    updater: 'ns1.redirect-www.org'
+  , port: 65443
+  , cacert: path.join(__dirname, 'certs/ca/ns1-test.root.crt.pem')
+  , ddns: ddns
+  , token: require('./dyndns-token').token
+  }).then(function (data) {
+    if ('string' === typeof data) {
+      try {
+        data = JSON.parse(data);
+      } catch(e) {
+        console.error('[ERROR] bad json response');
+        console.error(data);
+      }
+    }
 
-  console.log(JSON.stringify(data, null, '  '));
-  console.log('Test with');
-  console.log('dig <<hostname>> A');
+    console.log(JSON.stringify(data, null, '  '));
+    console.log('Test with');
+    console.log('dig <<hostname>> A');
+  });
 });

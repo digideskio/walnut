@@ -19,7 +19,7 @@ exports.upnpForward = function (port) {
         console.log('mappings');
         console.log(mappings);
       });
-       
+
       return promitter;
     })*/;
   });
@@ -49,12 +49,33 @@ client.externalIp(function(err, ip) {
 });
 */
 
-if (require.main === module) {
-  exports.upnpForward({ public: 65080, private: 65080, ttl: 0 }).then(function () {
+function usage() {
+  console.warn("");
+  console.warn("node helpers/upnp-forward [public port] [private port] [ttl]");
+  console.warn("");
+}
+
+function run() {
+  var pubPort = parseInt(process.argv[2], 10) || 0;
+  var privPort = parseInt(process.argv[3], 10) || pubPort;
+  var ttl = parseInt(process.argv[4], 10) || 0;
+  var options = { public: pubPort, private: privPort, ttl: ttl };
+
+  if (!pubPort) {
+    usage();
+    return;
+  }
+
+  exports.upnpForward(options).then(function () {
     console.log('done');
   }).catch(function (err) {
     console.error('ERROR');
     console.error(err);
     throw err;
   });
+}
+
+if (require.main === module) {
+  run();
+  return;
 }

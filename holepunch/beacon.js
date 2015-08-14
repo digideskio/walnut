@@ -1,14 +1,13 @@
 'use strict';
 
-var PromiseA = require('bluebird').Promise
-  , updateIp = require('./helpers/update-ip.js').update
-  , request = PromiseA.promisifyAll(require('request'))
-  , requestAsync = PromiseA.promisify(require('request'))
-  , upnpForward = require('./helpers/upnp-forward').upnpForward
-  , pmpForward = require('./helpers/pmp-forward').pmpForward
-  , loopbackHttps = require('./loopback-https')
-  //, checkip = require('check-ip-address')
-  ;
+var PromiseA = require('bluebird').Promise;
+var updateIp = require('./helpers/update-ip.js').update;
+var request = PromiseA.promisifyAll(require('request'));
+var requestAsync = PromiseA.promisify(require('request'));
+var upnpForward = require('./helpers/upnp-forward').upnpForward;
+var pmpForward = require('./helpers/pmp-forward').pmpForward;
+var loopbackHttps = require('./loopback-https');
+//var checkip = require('check-ip-address');
 
 function openPort(ip, port) {
   if (!/tcp|https|http/.test(port.protocol || 'tcp')) {
@@ -52,7 +51,7 @@ function beacon(hostnames, ports) {
 
     console.log("Updated DynDNS");
     console.log(data);
-    
+
     ports.forEach(function (port) {
       promises.push(openPort(JSON.parse(data)[0].answers[0] || hostname, port));
     });

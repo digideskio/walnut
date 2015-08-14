@@ -14,6 +14,7 @@ cli.parse({
 , insecure: [ false, '(deprecated) allow insecure non-https connections', 'boolean' ]
 , cacert: [ false, '(not implemented) specify a CA for "self-signed" https certificates', 'string' ]
 , answer: [ 'a', 'The answer', 'string' ]
+, token: [ false, 'Token', 'string' ]
 });
 
 cli.main(function (args, options) {
@@ -46,6 +47,7 @@ cli.main(function (args, options) {
       , "value": options.answer
       , "type": options.type
       , "priority": options.priority
+      , "token": options.token
       }
     ]
   }).then(function (data) {

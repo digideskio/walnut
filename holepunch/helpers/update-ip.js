@@ -11,6 +11,7 @@ module.exports.update = function (opts) {
     var options;
     var hostname = opts.updater || 'redirect-www.org';
     var port = opts.port || 65443;
+    var req;
 
     options = {
       host: hostname
@@ -49,7 +50,7 @@ module.exports.update = function (opts) {
 
     options.agent = new https.Agent(options);
 
-    https.request(options, function(res) {
+    req = https.request(options, function(res) {
       var textData = '';
 
       res.on('error', function (err) {
@@ -60,8 +61,22 @@ module.exports.update = function (opts) {
         // console.log(chunk.toString());
       });
       res.on('end', function () {
-        resolve(textData);
+        var err;
+        try {
+          resolve(JSON.parse(textData));
+        } catch(e) {
+          err = new Error("Unparsable Server Response");
+          err.code = 'E_INVALID_SERVER_RESPONSE';
+          err.data = textData;
+          reject(err);
+        }
       });
-    }).end(JSON.stringify(opts.ddns, null, '  '));
+    });
+
+    req.on('error', function () {
+      reject(err);
+    });
+
+    req.end(JSON.stringify(opts.ddns, null, '  '));
   });
 };

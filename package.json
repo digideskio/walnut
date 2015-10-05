@@ -87,7 +87,7 @@
     "negotiator": "^0.5.1",
     "node-pre-gyp": "^0.6.4",
     "node-uuid": "1.x",
-    "nodemailer": "1.x",
+    "nodemailer": "^1.4.0",
     "nodemailer-mailgun-transport": "1.x",
     "oauth": "0.9.x",
     "oauth2orize": "git://github.com/coolaj86/oauth2orize.git#v1.0.1+scope.1",

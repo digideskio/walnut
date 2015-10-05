@@ -64,5 +64,5 @@ cli.main(function (args, options) {
     console.log(JSON.stringify(data, null, '  '));
     console.log('Test with');
     console.log('dig ' + options.hostname + ' ' + options.type);
-  })
+  });
 });

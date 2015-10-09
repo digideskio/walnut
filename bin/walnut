@@ -2,6 +2,11 @@
 'use strict';
 
 require('../walnut.js');
+/*
+var c = require('console-plus');
+console.log = c.log;
+console.error = c.error;
+*/
 
 function eagerLoad() {
   var PromiseA = require('bluebird').Promise;

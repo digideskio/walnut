@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 'use strict';
 
-var PromiseA = require('bluebird').Promise
-  , https = require('https')
-  , fs = require('fs')
-  , path = require('path')
-  ;
+var PromiseA = require('bluebird').Promise;
+var https = require('https');
+var fs = require('fs');
+var path = require('path');
 
 module.exports.update = function (opts) {
   return new PromiseA(function (resolve, reject) {
-    var options
-      , hostname = opts.updater || 'redirect-www.org'
-      , port = opts.port || 65443
-      ;
+    var options;
+    var hostname = opts.updater || 'redirect-www.org';
+    var port = opts.port || 65443;
+    var req;
 
     options = {
       host: hostname
@@ -22,12 +21,36 @@ module.exports.update = function (opts) {
         'Content-Type': 'application/json'
       }
     , path: '/api/ddns'
-    , auth: opts.auth || 'admin:secret'
-    , ca: [ fs.readFileSync(path.join(__dirname, '..', 'certs', 'ca', 'my-root-ca.crt.pem')) ]
+    //, auth: opts.auth || 'admin:secret'
     };
+
+    if (opts.cacert) {
+      if (!Array.isArray(opts.cacert)) {
+        opts.cacert = [opts.cacert];
+      }
+      options.ca = opts.cacert;
+    } else {
+      options.ca = [path.join(__dirname, '..', 'certs', 'ca', 'my-root-ca.crt.pem')]
+    }
+
+    options.ca = options.ca.map(function (str) {
+      if ('string' === typeof str && str.length < 1000) {
+        str = fs.readFileSync(str);
+      }
+      return str;
+    });
+
+    if (opts.token || opts.jwt) {
+      options.headers['Authorization'] = 'Bearer ' + (opts.token || opts.jwt);
+    }
+
+    if (false === opts.cacert) {
+      options.rejectUnauthorized = false;
+    }
+
     options.agent = new https.Agent(options);
 
-    https.request(options, function(res) {
+    req = https.request(options, function(res) {
       var textData = '';
 
       res.on('error', function (err) {
@@ -38,8 +61,22 @@ module.exports.update = function (opts) {
         // console.log(chunk.toString());
       });
       res.on('end', function () {
-        resolve(textData);
+        var err;
+        try {
+          resolve(JSON.parse(textData));
+        } catch(e) {
+          err = new Error("Unparsable Server Response");
+          err.code = 'E_INVALID_SERVER_RESPONSE';
+          err.data = textData;
+          reject(err);
+        }
       });
-    }).end(JSON.stringify(opts.ddns, null, '  '));
+    });
+
+    req.on('error', function () {
+      reject(err);
+    });
+
+    req.end(JSON.stringify(opts.ddns, null, '  '));
   });
 };

@@ -14,6 +14,7 @@ cli.parse({
 , insecure: [ false, '(deprecated) allow insecure non-https connections', 'boolean' ]
 , cacert: [ false, '(not implemented) specify a CA for "self-signed" https certificates', 'string' ]
 , answer: [ 'a', 'The answer', 'string' ]
+, token: [ false, 'Token (TODO or filepath to token)', 'string' ]
 });
 
 cli.main(function (args, options) {
@@ -22,8 +23,9 @@ cli.main(function (args, options) {
   options.answer = options.answer || args[1]
 
   if (options.insecure) {
-    console.error('--insecure is not supported. You must use secure connections.');
-    return;
+    //console.error('--insecure is not supported. You must use secure connections.');
+    //return;
+    options.cacert = false;
   }
 
   if (!options.hostname) {
@@ -41,20 +43,26 @@ cli.main(function (args, options) {
     updater: options.service
   , port: options.port
   , cacert: options.cacert
+  , token: options.token
   , ddns: [
       { "name": options.hostname
       , "value": options.answer
       , "type": options.type
       , "priority": options.priority
+      , "token": options.token
       }
     ]
   }).then(function (data) {
     if ('string') {
-      data = JSON.parse(data);
+      try {
+        data = JSON.parse(data);
+      } catch(e) {
+        console.error(data);
+      }
     }
 
     console.log(JSON.stringify(data, null, '  '));
     console.log('Test with');
     console.log('dig ' + options.hostname + ' ' + options.type);
-  })
+  });
 });

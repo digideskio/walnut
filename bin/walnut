@@ -61,9 +61,12 @@ function eagerLoad() {
   , function () {
       require('body-parser').json();
     }
+    /*
+    // do not use urlencoded as it enables csrf
   , function () {
       require('body-parser').urlencoded();
     }
+    */
   ].forEach(function (fn) {
     promise = promise.then(function (thing) {
       return new PromiseA(function (resolve) {

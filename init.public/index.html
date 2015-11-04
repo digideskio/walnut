@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Device Locked</title>
+  </head>
+  <body>
+    <h1>Device Locked</h1>
+    <p>This device is locked and can only be unlocked with the device's encryption key.</p>
+    <!-- TODO QR Code -->
+    <form method="POST" action="/api/unlock-device">
+      <label>Encryption Key</label>
+      <input type="text">
+      <button type="submit">Unlock Device</button>
+    </form>
+    <script src="./scripts/jquery.js">
+    <script src="./scripts/app.js">
+  </body>
+</html>

@@ -22,7 +22,7 @@ function init(info) {
       //secureServer = _secureServer;
       console.log("#" + id + " Listening on https://localhost:" + secureServer.address().port, '\n');
 
-      return require('./lib/vhost-sni-server').create(info.securePort, vhostsdir).create(secureServer).then(function (app) {
+      return require('./lib/vhost-server').create(info.securePort, vhostsdir).create(secureServer).then(function (app) {
         workerApp = app;
 
         return app;

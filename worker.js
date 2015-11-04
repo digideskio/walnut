@@ -49,6 +49,36 @@ function init(info) {
         });
       });
 
+      function scrubTheDub(req, res/*, next*/) {
+        // hack for bricked app-cache
+        if (/\.appcache\b/.test(req.url)) {
+          res.setHeader('Content-Type', 'text/cache-manifest');
+          res.end('CACHE MANIFEST\n\n# v0__DELETE__CACHE__MANIFEST__\n\nNETWORK:\n*');
+          return;
+        }
+
+        // TODO port number for non-443
+        var escapeHtml = require('escape-html');
+        var newLocation = 'https://' + req.headers.host.replace(/^www\./, '') + req.url;
+        var safeLocation = escapeHtml(newLocation);
+
+        var metaRedirect = ''
+          + '<html>\n'
+          + '<head>\n'
+          + '  <style>* { background-color: white; color: white; text-decoration: none; }</style>\n'
+          + '  <META http-equiv="refresh" content="0;URL=' + safeLocation + '">\n'
+          + '</head>\n'
+          + '<body style="display: none;">\n'
+          + '  <p>You requested an old resource. Please use this instead: \n'
+          + '    <a href="' + safeLocation + '">' + safeLocation + '</a></p>\n'
+          + '</body>\n'
+          + '</html>\n'
+          ;
+
+        // 301 redirects will not work for appcache
+        res.end(metaRedirect);
+      }
+
       app.use('/', function (req, res, next) {
         if (/^\/api/.test(req.url)) {
           next();
@@ -66,10 +96,27 @@ function init(info) {
         }
         host = host.toLowerCase();
 
+        if (/^www\./.test(host)) {
+          scrubTheDub(req, res, next);
+          return;
+        }
+
+        function serveIt() {
+          // TODO redirect GET /favicon.ico to GET (req.headers.referer||'') + /favicon.ico
+          // TODO other common root things - robots.txt, app-icon, etc
+          staticHandlers[host].favicon(req, res, function (err) {
+            if (err) {
+              next(err);
+              return;
+            }
+            staticHandlers[host](req, res, next);
+          });
+        }
+
         if (staticHandlers[host]) {
           if (staticHandlers[host].then) {
             staticHandlers[host].then(function () {
-              staticHandlers[host](req, res, next);
+              serveIt();
             }, function (err) {
               res.send({
                 error: {
@@ -81,7 +128,7 @@ function init(info) {
             return;
           }
 
-          staticHandlers[host](req, res, next);
+          serveIt();
           return;
         }
 
@@ -107,21 +154,24 @@ function init(info) {
                 return;
               }
 
-              if (-1 === node.indexOf('.') || invalidHost.test(node)) {
+              // ignore .gitkeep and folders without a .
+              if (0 === node.indexOf('.') || -1 === node.indexOf('.') || invalidHost.test(node)) {
                 return;
               }
 
               console.log('vhost static');
               console.log(node);
               staticHandlers[node] = require('serve-static')(path.join(__dirname, 'sites-enabled', node));
+              try {
+                // TODO look for favicon
+                staticHandlers[node].favicon = require('serve-favicon')(path.join(__dirname, 'sites-enabled', node, 'favicon.ico'));
+              } catch(e) {
+                staticHandlers[node].favicon = function (req, res, next) { next(); };
+              }
             });
 
-            console.log('vhost static final');
-            console.log(host);
-            console.log(staticHandlers[host]);
-
             if (staticHandlers[host]) {
-              staticHandlers[host](req, res, next);
+              serveIt();
             } else {
               next();
             }

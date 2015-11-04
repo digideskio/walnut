@@ -1,6 +1,9 @@
 redirects.json
+sites-available
+sites-enabled
 dyndns-token.js
 vhosts
+certs
 .*.sw*
 
 # Logs

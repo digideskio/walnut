@@ -188,7 +188,11 @@ function init(info) {
     return workerApp;
   }
 
-  promiseServer = require('./lib/sni-server').create(info.certPaths, info.securePort, promiseApps);
+  if (info.certPaths) {
+    promiseServer = require('./lib/sni-server').create(info.certPaths, info.securePort, promiseApps);
+  } else {
+    promiseServer = require('./lib/local-server').create(info.securePort, promiseApps);
+  }
 }
 
 process.on('message', function (msg) {

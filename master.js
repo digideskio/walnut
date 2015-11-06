@@ -1,237 +1,105 @@
 'use strict';
 
+// TODO if RAM is very low we should not fork at all,
+// but use a different process altogether
+
+console.log('pid:', process.pid);
+console.log('title:', process.title);
+console.log('arch:', process.arch);
+console.log('platform:', process.platform);
 console.log('\n\n\n[MASTER] Welcome to WALNUT!');
 
-var PromiseA = require('bluebird');
-var fs = PromiseA.promisifyAll(require('fs'));
 var cluster = require('cluster');
-var numForks = 0;
-var numCores = Math.min(2, require('os').cpus().length);
-var securePort = process.argv[2] || 443; // 443
-var insecurePort = process.argv[3] || 80; // 80
-var localPort = securePort;
-var caddy;
-var masterServer;
-var rootMasterKey;
-
-var redirects = require('./redirects.json');
 var path = require('path');
+var minWorkers = 2;
+var numCores = Math.max(minWorkers, require('os').cpus().length);
+var workers = [];
+var caddypath = '/usr/local/bin/caddy';
+var useCaddy = require('fs').existsSync(caddypath);
+var conf = {
+  localPort: process.argv[2] || (useCaddy ? 4080 : 443)   // system / local network
+, insecurePort: process.argv[3] || (useCaddy ? 80 : 80)   // meh
+, externalPort: 443                                       // world accessible
+// TODO externalInsecurePort?
+, locked: false // TODO XXX
+, ipcKey: null
+, caddyfilepath: path.join(__dirname, 'Caddyfile')
+, sitespath: path.join(__dirname, 'sites-enabled')
+};
+var state = {};
+var caddy;
 
-    // force SSL upgrade server
-var certPaths = [path.join(__dirname, 'certs', 'live')];
-var promiseServer;
-var masterApp;
-var caddyConf = { localPort: 4080, locked: true };
-
-//console.log('\n.');
+if (useCaddy) {
+  conf.caddypath = caddypath;
+}
 
 function fork() {
-  if (numForks < numCores) {
-    numForks += 1;
-    cluster.fork();
+  if (workers.length < numCores) {
+    workers.push(cluster.fork());
   }
 }
-
-// Note that this function will be called async, after promiseServer is returned
-// it seems like a circular dependency, but it isn't... not exactly anyway
-function promiseApps() {
-  if (masterApp) {
-    return PromiseA.resolve(masterApp);
-  }
-
-  masterApp = promiseServer.then(function (_masterServer) {
-    masterServer = _masterServer;
-    console.log("[MASTER] Listening on https://localhost:" + masterServer.address().port, '\n');
-
-    return require('./lib/unlock-device').create().then(function (result) {
-      result.promise.then(function (_rootMasterKey) {
-        var i;
-        caddyConf.locked = false;
-        if (caddy) {
-          caddy.update(caddyConf);
-        }
-        rootMasterKey = _rootMasterKey;
-
-        if (numCores <= 2) {
-          // we're on one core, stagger the remaning
-          fork();
-          return;
-        }
-
-        for (i = 0; i < numCores; i += 1) {
-          fork();
-        }
-      });
-
-      masterApp = result.app;
-      return result.app;
-    });
-  });
-
-  return masterApp;
-}
-
-// TODO have a fallback server than can download and apply an update?
-require('./lib/insecure-server').create(securePort, insecurePort, redirects);
-//console.log('\n.');
-promiseServer = fs.existsAsync('/usr/local/bin/caddy').then(function () {
-  console.log("Caddy is not present");
-  // Caddy DOES NOT exist, use our node sni-server
-  return require('./lib/sni-server').create(certPaths, localPort, promiseApps);
-}, function () {
-  console.log("Caddy is present (assumed running)");
-  // Caddy DOES exist, use our http server without sni
-  localPort = caddyConf.localPort;
-  caddy = require('./lib/spawn-caddy').create();
-
-  return caddy.spawn(caddyConf).then(function () {
-    console.log("caddy has spawned");
-  //return caddy.update(caddyConf).then(function () {
-  //  console.log("caddy is updating");
-
-    setInterval(function () {
-      console.log('SIGUSR1 to caddy');
-      return caddy.update(caddyConf);
-    }, 60 * 1000);
-
-    return require('./lib/local-server').create(localPort, promiseApps);
-  //});
-  });
-});
-
-//console.log('\n.');
 
 cluster.on('online', function (worker) {
+  var path = require('path');
+  // TODO XXX Should these be configurable? If so, where?
+  var certPaths = [path.join(__dirname, 'certs', 'live')];
+  var info;
+
   console.log('[MASTER] Worker ' + worker.process.pid + ' is online');
   fork();
 
-  if (masterServer) {
-    // NOTE: it's possible that this could survive idle for a while through keep-alive
-    // should default to connection: close
-    masterServer.close();
-    masterServer = null;
+  info = {
+    type: 'com.daplie.walnut.init'
+  , conf: {
+      protocol: useCaddy ? 'http' : 'https'
+    , externalPort: conf.externalPort
+    , localPort: conf.localPort
+    , insecurePort: conf.insecurePort
+    , trustProxy: useCaddy ? true : false
+    , certPaths: useCaddy ? null : certPaths
+    , ipcKey: null
+    }
+  };
+  worker.send(info);
 
-    setTimeout(function () {
-      // TODO use `id' to find user's uid / gid and set to file
-      // TODO set immediately?
-      if (!caddy) {
-        // TODO what about caddy
-        process.setgid(1000);
-        process.setuid(1000);
-      }
-    }, 1000);
+  function touchMaster(msg) {
+    if ('com.daplie.walnut.webserver.listening' !== msg.type) {
+      console.warn('[MASTER] received unexpected message from worker');
+      console.warn(msg);
+      return;
+    }
+
+    // calls init if init has not been called
+    state.caddy = caddy;
+    state.workers = workers;
+    require('./lib/master').touch(conf, state).then(function () {
+      info.type = 'com.daplie.walnut.webserver.onrequest';
+      info.conf.ipcKey = conf.ipcKey;
+      worker.send(info);
+    });
   }
-
-  console.log("securePort", securePort);
-  worker.send({
-    type: 'init'
-  , securePort: localPort
-  , certPaths: caddy ? null : certPaths
-  });
-
-  worker.on('message', function (msg) {
-    console.log('message from worker');
-    console.log(msg);
-  });
+  worker.on('message', touchMaster);
 });
 
 cluster.on('exit', function (worker, code, signal) {
-  numForks -= 1;
   console.log('[MASTER] Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
+
+  workers = workers.map(function (w) {
+    if (worker !== w) {
+      return w;
+    }
+    return null;
+  }).filter(function (w) {
+    return w;
+  });
+
   fork();
 });
 
-// TODO delegate to workers
-function updateIps() {
-  console.log('[UPDATE IP]');
-  require('./lib/ddns-updater').update().then(function (results) {
-    results.forEach(function (result) {
-      if (result.error) {
-        console.error(result);
-      } else {
-        console.log('[SUCCESS]', result.service.hostname);
-      }
-    });
-  }).error(function (err) {
-    console.error('[UPDATE IP] ERROR');
-    console.error(err);
-  });
+fork();
+
+if (useCaddy) {
+  caddy = require('./lib/spawn-caddy').create(conf);
+  // relies on { localPort, locked }
+  caddy.spawn(conf);
 }
-// TODO check the IP every 5 minutes and update it every hour
-setInterval(updateIps, 60 * 60 * 1000);
-// we don't want this to load right away (extra procesing time)
-setTimeout(updateIps, 1);
-
-/*
-worker.send({
-  insecurePort: insecurePort
-});
-*/
-
-
-/*
-var fs = require('fs');
-var daplieReadFile = fs.readFileSync;
-var time = 0;
-
-fs.readFileSync = function (filename) {
-  var now = Date.now();
-  var data = daplieReadFile.apply(fs, arguments);
-  var t;
-
-  t = (Date.now() - now);
-  time += t;
-  console.log('loaded "' + filename + '" in ' + t + 'ms (total ' + time + 'ms)');
-
-  return data;
-};
-*/
-
-//var config = require('./device.json');
-
-// require('ssl-root-cas').inject();
-
-/*
-function phoneHome() {
-  var holepunch = require('./holepunch/beacon');
-  var ports;
-
-  ports = [
-    { private: 65022
-    , public: 65022
-    , protocol: 'tcp'
-    , ttl: 0
-    , test: { service: 'ssh' }
-    , testable: false
-    }
-  , { private: 650443
-    , public: 650443
-    , protocol: 'tcp'
-    , ttl: 0
-    , test: { service: 'https' }
-    }
-  , { private: 65080
-    , public: 65080
-    , protocol: 'tcp'
-    , ttl: 0
-    , test: { service: 'http' }
-    }
-  ];
-
-  // TODO return a middleware
-  holepunch.run(require('./redirects.json').reduce(function (all, redirect) {
-    if (!all[redirect.from.hostname]) {
-      all[redirect.from.hostname] = true;
-      all.push(redirect.from.hostname);
-    }
-    if (!all[redirect.to.hostname]) {
-      all[redirect.to.hostname] = true;
-      all.push(redirect.to.hostname);
-    }
-
-    return all;
-  }, []), ports).catch(function () {
-    console.error("Couldn't phone home. Oh well");
-  });
-}
-*/

@@ -12,7 +12,7 @@ console.log('\n\n\n[MASTER] Welcome to WALNUT!');
 var cluster = require('cluster');
 var path = require('path');
 var minWorkers = 2;
-var numCores = Math.max(minWorkers, require('os').cpus().length);
+var numCores = 1; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
 var caddypath = '/usr/local/bin/caddy';
 var useCaddy = require('fs').existsSync(caddypath);
@@ -75,6 +75,8 @@ cluster.on('online', function (worker) {
     require('./lib/master').touch(conf, state).then(function () {
       info.type = 'com.daplie.walnut.webserver.onrequest';
       info.conf.ipcKey = conf.ipcKey;
+      info.conf.memstoreSock = conf.memstoreSock;
+      info.conf.sqlite3Sock = conf.sqlite3Sock;
       worker.send(info);
     });
   }
@@ -93,7 +95,8 @@ cluster.on('exit', function (worker, code, signal) {
     return w;
   });
 
-  fork();
+  console.log('WARNING: worker spawning turned off for debugging ');
+  //fork();
 });
 
 fork();

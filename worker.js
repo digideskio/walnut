@@ -5,8 +5,8 @@ var id = cluster.worker.id.toString();
 
 function waitForInit(message) {
   if ('com.daplie.walnut.init' !== message.type) {
-    console.log('[Worker] 0 got unexpected message:');
-    console.log(message);
+    console.warn('[Worker] 0 got unexpected message:');
+    console.warn(message);
     return;
   }
 
@@ -15,7 +15,7 @@ function waitForInit(message) {
 
   require('./lib/local-server').create(msg.certPaths, msg.localPort, function (err, webserver) {
     if (err) {
-      console.log('[ERROR] worker.js');
+      console.error('[ERROR] worker.js');
       console.error(err.stack);
       throw err;
     }
@@ -26,8 +26,8 @@ function waitForInit(message) {
     return new PromiseA(function (resolve) {
       function initWebServer(srvmsg) {
         if ('com.daplie.walnut.webserver.onrequest' !== srvmsg.type) {
-          console.log('[Worker] 1 got unexpected message:');
-          console.log(srvmsg);
+          console.warn('[Worker] 1 got unexpected message:');
+          console.warn(srvmsg);
           return;
         }
 
@@ -63,9 +63,10 @@ process.on('beforeExit', function (msg) {
 process.on('unhandledRejection', function (err) {
   // this should always throw
   // (it means somewhere we're not using bluebird by accident)
-  console.error('[unhandledRejection]');
+  console.error('[caught] [unhandledRejection]');
+  console.error(Object.keys(err));
+  console.error(err);
   console.error(err.stack);
-  throw err;
 });
 process.on('rejectionHandled', function (msg) {
   console.error('[rejectionHandled]');

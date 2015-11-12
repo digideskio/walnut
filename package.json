@@ -88,7 +88,7 @@
     "ms": "^0.7.0",
     "negotiator": "^0.5.1",
     "node-pre-gyp": "^0.6.4",
-    "node-uuid": "1.x",
+    "node-uuid": "^1.4.4",
     "nodemailer": "^1.4.0",
     "nodemailer-mailgun-transport": "1.x",
     "oauth": "0.9.x",

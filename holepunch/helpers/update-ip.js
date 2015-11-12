@@ -73,7 +73,7 @@ module.exports.update = function (opts) {
       });
     });
 
-    req.on('error', function () {
+    req.on('error', function (err) {
       reject(err);
     });
 

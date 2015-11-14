@@ -6,6 +6,8 @@ dyndns-token.js
 vhosts
 certs
 .*.sw*
+packages
+var
 
 # Logs
 logs

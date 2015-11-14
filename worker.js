@@ -12,7 +12,6 @@ function waitForInit(message) {
 
   var msg = message.conf;
   process.removeListener('message', waitForInit);
-
   require('./lib/local-server').create(msg.certPaths, msg.localPort, function (err, webserver) {
     if (err) {
       console.error('[ERROR] worker.js');
@@ -38,6 +37,9 @@ function waitForInit(message) {
       process.on('message', initWebServer);
     });
   });
+
+  // TODO conditional if 80 is being served by caddy
+  require('./lib/insecure-server').create(msg.externalPort, msg.insecurePort);
 }
 
 // We have to wait to get the configuration from the master process

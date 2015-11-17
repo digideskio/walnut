@@ -20,7 +20,7 @@ Math.random = function () {
 };
 
 if (cluster.isMaster) {
-  require('./master');
+  require('./boot/master');
 } else {
-  require('./worker');
+  require('./boot/worker').create(null);
 }

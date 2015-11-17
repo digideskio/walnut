@@ -3,15 +3,15 @@
 // TODO if RAM is very low we should not fork at all,
 // but use a different process altogether
 
-console.log('pid:', process.pid);
-console.log('title:', process.title);
-console.log('arch:', process.arch);
-console.log('platform:', process.platform);
-console.log('\n\n\n[MASTER] Welcome to WALNUT!');
+console.info('pid:', process.pid);
+console.info('title:', process.title);
+console.info('arch:', process.arch);
+console.info('platform:', process.platform);
+console.info('\n\n\n[MASTER] Welcome to WALNUT!');
 
 var cluster = require('cluster');
 var path = require('path');
-var minWorkers = 2;
+//var minWorkers = 2;
 var numCores = 1; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
 var caddypath = '/usr/local/bin/caddy';
@@ -23,8 +23,8 @@ var conf = {
 // TODO externalInsecurePort?
 , locked: false // TODO XXX
 , ipcKey: null
-, caddyfilepath: path.join(__dirname, 'Caddyfile')
-, sitespath: path.join(__dirname, 'sites-enabled')
+, caddyfilepath: path.join(__dirname, '..', 'Caddyfile')
+, sitespath: path.join(__dirname, '..', 'sites-enabled')
 };
 var state = {};
 var caddy;
@@ -45,9 +45,10 @@ cluster.on('online', function (worker) {
   var certPaths = [path.join(__dirname, 'certs', 'live')];
   var info;
 
-  console.log('[MASTER] Worker ' + worker.process.pid + ' is online');
+  console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
   fork();
 
+  // TODO communicate config with environment vars?
   info = {
     type: 'com.daplie.walnut.init'
   , conf: {
@@ -72,7 +73,7 @@ cluster.on('online', function (worker) {
     // calls init if init has not been called
     state.caddy = caddy;
     state.workers = workers;
-    require('./lib/master').touch(conf, state).then(function () {
+    require('../lib/master').touch(conf, state).then(function () {
       info.type = 'com.daplie.walnut.webserver.onrequest';
       info.conf.ipcKey = conf.ipcKey;
       info.conf.memstoreSock = conf.memstoreSock;
@@ -84,7 +85,7 @@ cluster.on('online', function (worker) {
 });
 
 cluster.on('exit', function (worker, code, signal) {
-  console.log('[MASTER] Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
+  console.info('[MASTER] Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
 
   workers = workers.map(function (w) {
     if (worker !== w) {
@@ -102,7 +103,7 @@ cluster.on('exit', function (worker, code, signal) {
 fork();
 
 if (useCaddy) {
-  caddy = require('./lib/spawn-caddy').create(conf);
+  caddy = require('../lib/spawn-caddy').create(conf);
   // relies on { localPort, locked }
   caddy.spawn(conf);
 }

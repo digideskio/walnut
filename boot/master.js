@@ -78,6 +78,10 @@ cluster.on('online', function (worker) {
       info.conf.ipcKey = conf.ipcKey;
       info.conf.memstoreSock = conf.memstoreSock;
       info.conf.sqlite3Sock = conf.sqlite3Sock;
+      // TODO get this from db config instead
+      var config = require('../config');
+      info.conf.primaryNameserver = config.primaryNameserver;
+      info.conf.nameservers = config.nameservers;
       worker.send(info);
     });
   }

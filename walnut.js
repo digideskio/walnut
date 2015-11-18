@@ -22,5 +22,9 @@ Math.random = function () {
 if (cluster.isMaster) {
   require('./boot/master');
 } else {
+  /*
+  alternately we could use this and then check require.main
+  cluster.setupMaster({ exec : "app.js", });
+  */
   require('./boot/worker').create(null);
 }

@@ -12,7 +12,7 @@ console.info('\n\n\n[MASTER] Welcome to WALNUT!');
 var cluster = require('cluster');
 var path = require('path');
 //var minWorkers = 2;
-var numCores = 1; // Math.max(minWorkers, require('os').cpus().length);
+var numCores = 2; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
 var caddypath = '/usr/local/bin/caddy';
 var useCaddy = require('fs').existsSync(caddypath);
@@ -100,8 +100,8 @@ cluster.on('exit', function (worker, code, signal) {
     return w;
   });
 
-  console.log('WARNING: worker spawning turned off for debugging ');
-  //fork();
+  //console.log('WARNING: worker spawning turned off for debugging ');
+  fork();
 });
 
 fork();

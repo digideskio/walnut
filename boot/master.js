@@ -82,6 +82,9 @@ cluster.on('online', function (worker) {
       var config = require('../config');
       info.conf.primaryNameserver = config.primaryNameserver;
       info.conf.nameservers = config.nameservers;
+      // TODO get this from db config instead
+      info.conf.privkey = config.privkey;
+      info.conf.pubkey = config.pubkey;
       worker.send(info);
     });
   }

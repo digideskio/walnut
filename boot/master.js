@@ -23,8 +23,8 @@ var conf = {
 // TODO externalInsecurePort?
 , locked: false // TODO XXX
 , ipcKey: null
-, caddyfilepath: path.join(__dirname, '..', 'Caddyfile')
-, sitespath: path.join(__dirname, '..', 'sites-enabled')
+, caddyfilepath: path.join(__dirname, '..', '..', 'Caddyfile')
+, sitespath: path.join(__dirname, '..', '..', 'sites-enabled')
 };
 var state = {};
 var caddy;
@@ -42,7 +42,7 @@ function fork() {
 cluster.on('online', function (worker) {
   var path = require('path');
   // TODO XXX Should these be configurable? If so, where?
-  var certPaths = [path.join(__dirname, 'certs', 'live')];
+  var certPaths = [path.join(__dirname, '..', 'certs', 'live')];
   var info;
 
   console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
@@ -79,7 +79,7 @@ cluster.on('online', function (worker) {
       info.conf.memstoreSock = conf.memstoreSock;
       info.conf.sqlite3Sock = conf.sqlite3Sock;
       // TODO get this from db config instead
-      var config = require('../config');
+      var config = require('../../config');
       info.conf.primaryNameserver = config.primaryNameserver;
       info.conf.nameservers = config.nameservers;
       // TODO get this from db config instead

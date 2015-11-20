@@ -6,9 +6,10 @@ var updateIp = require('./holepunch/helpers/update-ip.js').update;
 var cli = require('cli');
 
 cli.parse({
-  service: [ 's', 'The service to use for updates i.e. redirect-www.org', 'string', 'redirect-www.org' ]
+  service: [ 's', 'The service to use for updates i.e. ns1.example.org', 'string' ]
 , hostname: [ 'h', 'The hostname you wish to update i.e. example.com', 'string' ]
-, type: [ 't', 'The record type i.e. A, MX, CNAME, etc', 'string', 'A' ]
+, pathname: [ 'h', 'The api route to which to POST i.e. /api/ddns', 'string', '/api/com.daplie.dns/ddns' ]
+, type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, ANAME, FWD, etc', 'string', 'A' ]
 , priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
 , port: [ false, 'The port (default https/443)', 'number', 443 ]
 , insecure: [ false, '(deprecated) allow insecure non-https connections', 'boolean' ]
@@ -19,8 +20,8 @@ cli.parse({
 
 cli.main(function (args, options) {
   //console.log(options);
-  options.hostname = options.hostname || args[0]
-  options.answer = options.answer || args[1]
+  options.hostname = options.hostname || args[0];
+  options.answer = options.answer || args[1];
 
   if (options.insecure) {
     //console.error('--insecure is not supported. You must use secure connections.');
@@ -40,9 +41,11 @@ cli.main(function (args, options) {
   //console.log(options);
 
   return updateIp({
-    updater: options.service
+    hostname: options.service
+  , updater: options.service
   , port: options.port
   , cacert: options.cacert
+  , pathname: options.pathname
   , token: options.token
   , ddns: [
       { "name": options.hostname

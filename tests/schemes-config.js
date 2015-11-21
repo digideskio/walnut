@@ -41,7 +41,7 @@ var results = {
 
 var req = { host: 'hellabit.com', url: '/connect' };
 module.exports.create({
-  apppath: '../packages/apps/'
+  pagespath: '../packages/apps/'
 , apipath: '../packages/apis/'
 , vhostsMap: vhostsMap
 }).api(req);

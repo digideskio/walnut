@@ -38,7 +38,7 @@ module.exports.update = function (opts) {
       options.ca = opts.cacert;
     }
 
-    options.ca = options.ca.map(function (str) {
+    options.ca = (options.ca||[]).map(function (str) {
       if ('string' === typeof str && str.length < 1000) {
         str = fs.readFileAsync(str);
       }

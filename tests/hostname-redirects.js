@@ -55,9 +55,9 @@ var domains = {
 , 'www.example.com': false
 };
 
-var redirects = sortOpts(opts);
+var redirects = sortOpts(opts.redirects);
 
-console.log(redirects);
+//console.log(redirects);
 
 Object.keys(domains).forEach(function (domain, i) {
   var redir = domains[domain];
@@ -68,5 +68,8 @@ Object.keys(domains).forEach(function (domain, i) {
   }
 });
 
+console.log("TODO: we do not yet detect infinite loop redirects");
+console.log("");
+console.log("");
 console.log("Didn't throw any errors. Must have worked, eh?");
-console.log("TODO: detect and report infinite redirects");
+console.log("");

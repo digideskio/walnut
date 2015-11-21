@@ -2,24 +2,37 @@
 
 module.exports.create = function (opts) {
   var id = '0';
+  var promiseApp;
+
+  function createAndBindInsecure(message, cb) {
+    // TODO conditional if 80 is being served by caddy
+    require('../lib/insecure-server').create(message.conf.externalPort, message.conf.insecurePort, message, function (err, webserver) {
+      console.info("#" + id + " Listening on http://" + webserver.address().address + ":" + webserver.address().port, '\n');
+
+      // we are returning the promise result to the caller
+      return cb(null, webserver, null, message);
+    });
+  }
 
   function createAndBindServers(message, cb) {
-    var msg = message.conf;
-
-    require('../lib/local-server').create(msg.certPaths, msg.localPort, function (err, webserver) {
+    // NOTE that message.conf[x] will be overwritten when the next message comes in
+    require('../lib/local-server').create(message.conf.certPaths, message.conf.localPort, message, function (err, webserver) {
       if (err) {
         console.error('[ERROR] worker.js');
         console.error(err.stack);
         throw err;
       }
 
-      console.info("#" + id + " Listening on " + msg.protocol + "://" + webserver.address().address + ":" + webserver.address().port, '\n');
+      console.info("#" + id + " Listening on " + message.conf.protocol + "://" + webserver.address().address + ":" + webserver.address().port, '\n');
 
-      return cb(webserver);
+      // we don't need time to pass, just to be able to return
+      process.nextTick(function () {
+        createAndBindInsecure(message, cb);
+      });
+
+      // we are returning the promise result to the caller
+      return cb(null, null, webserver, message);
     });
-
-    // TODO conditional if 80 is being served by caddy
-    require('../lib/insecure-server').create(msg.externalPort, msg.insecurePort);
   }
 
   //
@@ -35,9 +48,16 @@ module.exports.create = function (opts) {
     process.removeListener('message', waitForConfig);
 
     // NOTE: this callback must return a promise for an express app
-    createAndBindServers(message, function (webserver) {
+    createAndBindServers(message, function (err, insecserver, webserver, oldMessage) {
+      // TODO deep merge new message into old message
+      Object.keys(message.conf).forEach(function (key) {
+        oldMessage.conf[key] = message.conf[key];
+      });
       var PromiseA = require('bluebird');
-      return new PromiseA(function (resolve) {
+      if (promiseApp) {
+        return promiseApp;
+      }
+      promiseApp = new PromiseA(function (resolve) {
         function initWebServer(srvmsg) {
           if ('com.daplie.walnut.webserver.onrequest' !== srvmsg.type) {
             console.warn('[Worker] 1 got unexpected message:');
@@ -56,6 +76,7 @@ module.exports.create = function (opts) {
         console.info('[Worker Ready]');
         return app;
       });
+      return promiseApp;
     });
   }
 
@@ -64,9 +85,12 @@ module.exports.create = function (opts) {
   //
   if (opts) {
     // NOTE: this callback must return a promise for an express app
-    createAndBindServers(opts, function (webserver) {
+    createAndBindServers(opts, function (err, insecserver, webserver/*, message*/) {
       var PromiseA = require('bluebird');
-      return new PromiseA(function (resolve) {
+      if (promiseApp) {
+        return promiseApp;
+      }
+      promiseApp = new PromiseA(function (resolve) {
         opts.getConfig(function (srvmsg) {
           resolve(require('../lib/worker').create(webserver, srvmsg));
         });
@@ -74,6 +98,7 @@ module.exports.create = function (opts) {
         console.info('[Standalone Ready]');
         return app;
       });
+      return promiseApp;
     });
   } else {
     // we are in cluster mode, as opposed to standalone mode

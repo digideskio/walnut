@@ -17,8 +17,8 @@ var workers = [];
 var caddypath = '/usr/local/bin/caddy';
 var useCaddy = require('fs').existsSync(caddypath);
 var conf = {
-  localPort: process.argv[2] || (useCaddy ? 4080 : 443)   // system / local network
-, insecurePort: process.argv[3] || (useCaddy ? 80 : 80)   // meh
+  localPort: process.argv[2] || (useCaddy ? 4080 : 6443)   // system / local network
+, insecurePort: process.argv[3] || (useCaddy ? 80 : 65080)   // meh
 , externalPort: 443                                       // world accessible
 // TODO externalInsecurePort?
 , locked: false // TODO XXX
@@ -42,8 +42,9 @@ function fork() {
 cluster.on('online', function (worker) {
   var path = require('path');
   // TODO XXX Should these be configurable? If so, where?
-  var certPaths = [path.join(__dirname, '..', 'certs', 'live')];
+  var certPaths = [path.join(__dirname, '..', '..', 'certs', 'live')];
   var info;
+  var config = require('../../config');
 
   console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
   fork();
@@ -59,6 +60,8 @@ cluster.on('online', function (worker) {
     , trustProxy: useCaddy ? true : false
     , certPaths: useCaddy ? null : certPaths
     , ipcKey: null
+      // TODO let this load after server is listening
+    , redirects: config.redirects
     }
   };
   worker.send(info);
@@ -85,6 +88,7 @@ cluster.on('online', function (worker) {
       // TODO get this from db config instead
       info.conf.privkey = config.privkey;
       info.conf.pubkey = config.pubkey;
+      info.conf.redirects = config.redirects;
       worker.send(info);
     });
   }

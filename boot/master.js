@@ -17,9 +17,10 @@ var workers = [];
 var caddypath = '/usr/local/bin/caddy';
 var useCaddy = require('fs').existsSync(caddypath);
 var conf = {
-  localPort: process.argv[2] || (useCaddy ? 4080 : 6443)   // system / local network
-, insecurePort: process.argv[3] || (useCaddy ? 80 : 65080)   // meh
+  localPort: process.argv[2] || (useCaddy ? 4080 : 443)   // system / local network
+, insecurePort: process.argv[3] || (useCaddy ? 80 : 80)   // meh
 , externalPort: 443                                       // world accessible
+, externalPortInsecure: 80                                // world accessible
 // TODO externalInsecurePort?
 , locked: false // TODO XXX
 , ipcKey: null

@@ -38,13 +38,6 @@ module.exports.update = function (opts) {
       options.ca = opts.cacert;
     }
 
-    options.ca = (options.ca||[]).map(function (str) {
-      if ('string' === typeof str && str.length < 1000) {
-        str = fs.readFileAsync(str);
-      }
-      return str;
-    });
-
     if (opts.token || opts.jwt) {
       options.headers.Authorization = 'Bearer ' + (opts.token || opts.jwt);
     }
@@ -52,6 +45,13 @@ module.exports.update = function (opts) {
     if (false === opts.cacert) {
       options.rejectUnauthorized = false;
     }
+
+    options.ca = (options.ca||[]).map(function (str) {
+      if ('string' === typeof str && str.length < 1000) {
+        str = fs.readFileAsync(str);
+      }
+      return str;
+    });
 
     return PromiseA.all(options.ca).then(function (cas) {
       options.ca = cas;

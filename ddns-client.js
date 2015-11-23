@@ -8,7 +8,7 @@ var cli = require('cli');
 cli.parse({
   service: [ 's', 'The service to use for updates i.e. ns1.example.org', 'string' ]
 , hostname: [ 'h', 'The hostname you wish to update i.e. example.com', 'string' ]
-, pathname: [ 'h', 'The api route to which to POST i.e. /api/ddns', 'string', '/api/com.daplie.dns/ddns' ]
+, pathname: [ false, 'The api route to which to POST i.e. /api/ddns', 'string', '/api/com.daplie.dns/ddns' ]
 , type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, ANAME, FWD, etc', 'string', 'A' ]
 , priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
 , port: [ false, 'The port (default https/443)', 'number', 443 ]
@@ -52,7 +52,9 @@ cli.main(function (args, options) {
       , "value": options.answer
       , "type": options.type
       , "priority": options.priority
-      , "token": options.token
+      , "token": options.token // device should go here?
+      //, "ttl": options.ttl
+      //, "device": ''
       }
     ]
   }).then(function (data) {
@@ -67,5 +69,9 @@ cli.main(function (args, options) {
     console.log(JSON.stringify(data, null, '  '));
     console.log('Test with');
     console.log('dig ' + options.hostname + ' ' + options.type);
+  }, function (err) {
+    console.error('[DDNS CLIENT]');
+    console.error(err.stack);
+    console.error(err.data);
   });
 });

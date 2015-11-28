@@ -53,7 +53,7 @@ cluster.on('online', function (worker) {
 
   // TODO communicate config with environment vars?
   info = {
-    type: 'com.daplie.walnut.init'
+    type: 'walnut.init'
   , conf: {
       protocol: useCaddy ? 'http' : 'https'
     , externalPort: conf.externalPort
@@ -70,7 +70,7 @@ cluster.on('online', function (worker) {
   worker.send(info);
 
   function touchMaster(msg) {
-    if ('com.daplie.walnut.webserver.listening' !== msg.type) {
+    if ('walnut.webserver.listening' !== msg.type) {
       console.warn('[MASTER] received unexpected message from worker');
       console.warn(msg);
       return;
@@ -80,7 +80,7 @@ cluster.on('online', function (worker) {
     state.caddy = caddy;
     state.workers = workers;
     require('../lib/master').touch(conf, state).then(function () {
-      info.type = 'com.daplie.walnut.webserver.onrequest';
+      info.type = 'walnut.webserver.onrequest';
       info.conf.ipcKey = conf.ipcKey;
       info.conf.memstoreSock = conf.memstoreSock;
       info.conf.sqlite3Sock = conf.sqlite3Sock;

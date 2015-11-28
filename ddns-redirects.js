@@ -34,7 +34,7 @@ require('ipify')(function (err, ip) {
   , port: 65443
   , cacert: path.join(__dirname, 'certs/ca/ns1-test.root.crt.pem')
   , ddns: ddns
-  , token: require('./dyndns-token').token
+  , token: token
   }).then(function (data) {
     if ('string' === typeof data) {
       try {

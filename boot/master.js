@@ -46,6 +46,8 @@ cluster.on('online', function (worker) {
   var certPaths = [path.join(__dirname, '..', '..', 'certs', 'live')];
   var info;
   var config = require('../../config');
+  conf.ddns = config.ddns;
+  conf.redirects = config.redirects;
 
   console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
   fork();
@@ -63,6 +65,7 @@ cluster.on('online', function (worker) {
     , ipcKey: null
       // TODO let this load after server is listening
     , redirects: config.redirects
+    , ddns: config.ddns
     }
   };
   worker.send(info);
@@ -90,6 +93,7 @@ cluster.on('online', function (worker) {
       info.conf.privkey = config.privkey;
       info.conf.pubkey = config.pubkey;
       info.conf.redirects = config.redirects;
+      info.conf.ddns = config.ddns;
       worker.send(info);
     });
   }

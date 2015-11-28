@@ -1,13 +1,4 @@
-redirects.json
-Caddyfile
-sites-available
-sites-enabled
-dyndns-token.js
-vhosts
-certs
 .*.sw*
-packages
-var
 
 # Logs
 logs

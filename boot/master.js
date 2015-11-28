@@ -14,8 +14,8 @@ var path = require('path');
 //var minWorkers = 2;
 var numCores = 2; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
-var caddypath = '/usr/local/bin/caddy';
-var useCaddy = require('fs').existsSync(caddypath);
+var config = require('../../config');
+var useCaddy = require('fs').existsSync(config.caddy.bin);
 var conf = {
   localPort: process.argv[2] || (useCaddy ? 4080 : 443)   // system / local network
 , insecurePort: process.argv[3] || (useCaddy ? 80 : 80)   // meh
@@ -24,7 +24,7 @@ var conf = {
 // TODO externalInsecurePort?
 , locked: false // TODO XXX
 , ipcKey: null
-, caddyfilepath: path.join(__dirname, '..', '..', 'Caddyfile')
+, caddyfilepath: config.caddy.conf
 , sitespath: path.join(__dirname, '..', '..', 'sites-enabled')
 };
 var state = {};
@@ -45,7 +45,6 @@ cluster.on('online', function (worker) {
   // TODO XXX Should these be configurable? If so, where?
   var certPaths = [path.join(__dirname, '..', '..', 'certs', 'live')];
   var info;
-  var config = require('../../config');
   conf.ddns = config.ddns;
   conf.redirects = config.redirects;
 
@@ -87,8 +86,8 @@ cluster.on('online', function (worker) {
       info.conf.sqlite3Sock = conf.sqlite3Sock;
       // TODO get this from db config instead
       var config = require('../../config');
-      info.conf.primaryNameserver = config.primaryNameserver;
-      info.conf.nameservers = config.nameservers;
+      info.conf.primaryNameserver = config.ddns.primaryNameserver;
+      info.conf.nameservers = config.ddns.nameservers;
       // TODO get this from db config instead
       info.conf.privkey = config.privkey;
       info.conf.pubkey = config.pubkey;

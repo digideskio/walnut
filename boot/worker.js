@@ -39,7 +39,7 @@ module.exports.create = function (opts) {
   // Worker Mode
   //
   function waitForConfig(message) {
-    if ('com.daplie.walnut.init' !== message.type) {
+    if ('walnut.init' !== message.type) {
       console.warn('[Worker] 0 got unexpected message:');
       console.warn(message);
       return;
@@ -59,7 +59,7 @@ module.exports.create = function (opts) {
       }
       promiseApp = new PromiseA(function (resolve) {
         function initWebServer(srvmsg) {
-          if ('com.daplie.walnut.webserver.onrequest' !== srvmsg.type) {
+          if ('walnut.webserver.onrequest' !== srvmsg.type) {
             console.warn('[Worker] 1 got unexpected message:');
             console.warn(srvmsg);
             return;
@@ -70,7 +70,7 @@ module.exports.create = function (opts) {
           resolve(require('../lib/worker').create(webserver, srvmsg));
         }
 
-        process.send({ type: 'com.daplie.walnut.webserver.listening' });
+        process.send({ type: 'walnut.webserver.listening' });
         process.on('message', initWebServer);
       }).then(function (app) {
         console.info('[Worker Ready]');

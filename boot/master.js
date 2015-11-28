@@ -25,7 +25,8 @@ var conf = {
 , locked: false // TODO XXX
 , ipcKey: null
 , caddyfilepath: config.caddy.conf
-, sitespath: path.join(__dirname, '..', '..', 'sites-enabled')
+  // TODO needs mappings from db
+, caddy: config.caddy
 };
 var state = {};
 var caddy;
@@ -43,7 +44,7 @@ function fork() {
 cluster.on('online', function (worker) {
   var path = require('path');
   // TODO XXX Should these be configurable? If so, where?
-  var certPaths = [path.join(__dirname, '..', '..', 'certs', 'live')];
+  var certPaths = config.certPaths;
   var info;
   conf.ddns = config.ddns;
   conf.redirects = config.redirects;

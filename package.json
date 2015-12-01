@@ -57,7 +57,7 @@
     "cookie-session": "1.x",
     "cookie-signature": "^1.0.6",
     "crc": "^3.2.1",
-    "dbwrap": "git://bitbucket.org/daplie/dbwrap.git",
+    "masterquest-sqlite3": "git://github.org/coolaj86/masterquest-sqlite3.git",
     "debug": "^2.1.3",
     "depd": "^1.0.0",
     "destroy": "^1.0.3",

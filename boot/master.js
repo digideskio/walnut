@@ -10,7 +10,6 @@ console.info('platform:', process.platform);
 console.info('\n\n\n[MASTER] Welcome to WALNUT!');
 
 var cluster = require('cluster');
-var path = require('path');
 //var minWorkers = 2;
 var numCores = 2; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
@@ -31,10 +30,6 @@ var conf = {
 var state = {};
 var caddy;
 
-if (useCaddy) {
-  conf.caddypath = caddypath;
-}
-
 function fork() {
   if (workers.length < numCores) {
     workers.push(cluster.fork());
@@ -42,7 +37,6 @@ function fork() {
 }
 
 cluster.on('online', function (worker) {
-  var path = require('path');
   // TODO XXX Should these be configurable? If so, where?
   var certPaths = config.certPaths;
   var info;
@@ -66,6 +60,9 @@ cluster.on('online', function (worker) {
       // TODO let this load after server is listening
     , redirects: config.redirects
     , ddns: config.ddns
+    , 'org.oauth3.consumer': config['org.oauth3.consumer']
+    , 'org.oauth3.provider': config['org.oauth3.provider']
+    , keys: config.keys
     }
   };
   worker.send(info);

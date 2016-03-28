@@ -39,7 +39,7 @@
   "dependencies": {
     "accepts": "^1.2.5",
     "app-scoped-ids": "^1.0.1",
-    "authcodes": "git://bitbucket.org/daplie/authcodes.git",
+    "authcodes": "git://github.com/Daplie/authcodes.git",
     "authenticator": "^1.0.0",
     "bluebird": "2.x",
     "body-parser": "1.x",

@@ -9,7 +9,7 @@ git clone https://github.com/Daplie/walnut.git /srv/walnut/core
 
 pushd /srv/walnut/core
 npm install
-rsync -av /srv/walnut/core/etc/init/walnut.conf /etc/init/walnut.conf
+sudo rsync -av /srv/walnut/core/etc/init/walnut.conf /etc/init/walnut.conf
 
 popd
 mv /srv/walnut/core/node_modules /srv/walnut

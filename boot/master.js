@@ -9,6 +9,7 @@ console.info('arch:', process.arch);
 console.info('platform:', process.platform);
 console.info('\n\n\n[MASTER] Welcome to WALNUT!');
 
+var path = require('path');
 var cluster = require('cluster');
 //var minWorkers = 2;
 var numCores = 2; // Math.max(minWorkers, require('os').cpus().length);
@@ -38,7 +39,10 @@ function fork() {
 
 cluster.on('online', function (worker) {
   // TODO XXX Should these be configurable? If so, where?
-  var certPaths = config.certPaths;
+  var certPaths = [
+    path.join(__dirname, 'certs', 'live')
+  , path.join(__dirname, 'letsencrypt', 'live')
+  ];
   var info;
   conf.ddns = config.ddns;
   conf.redirects = config.redirects;

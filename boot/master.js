@@ -49,6 +49,10 @@ var config = {
   // TODO use sqlite3 or autogenerate ?
 , privkey: require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem', 'ascii')
 , pubkey: require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem.pub', 'ascii')
+// keys
+// letsencrypt
+// com.example.provider
+// com.example.consumer
 };
 var useCaddy = require('fs').existsSync(config.caddy.bin);
 var state = {};

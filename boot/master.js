@@ -63,6 +63,7 @@ cluster.on('online', function (worker) {
     , 'org.oauth3.consumer': config['org.oauth3.consumer']
     , 'org.oauth3.provider': config['org.oauth3.provider']
     , keys: config.keys
+    , letsencrypt: config.letsencrypt
     }
   };
   worker.send(info);

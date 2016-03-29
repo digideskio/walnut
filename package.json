@@ -81,6 +81,7 @@
     "json-storage": "2.x",
     "jsonwebtoken": "^5.4.0",
     "lodash": "2.x",
+    "letsencrypt-express": "1.1.x",
     "masterquest-sqlite3": "git://github.com/coolaj86/masterquest-sqlite3.git",
     "media-typer": "^0.3.0",
     "methods": "^1.1.1",

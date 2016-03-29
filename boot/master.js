@@ -44,7 +44,6 @@ cluster.on('online', function (worker) {
   , path.join(__dirname, 'letsencrypt', 'live')
   ];
   var info;
-  conf.ddns = config.ddns;
   conf.redirects = config.redirects;
 
   console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
@@ -63,7 +62,6 @@ cluster.on('online', function (worker) {
     , ipcKey: null
       // TODO let this load after server is listening
     , redirects: config.redirects
-    , ddns: config.ddns
     , 'org.oauth3.consumer': config['org.oauth3.consumer']
     , 'org.oauth3.provider': config['org.oauth3.provider']
     , keys: config.keys
@@ -88,13 +86,10 @@ cluster.on('online', function (worker) {
       info.conf.sqlite3Sock = conf.sqlite3Sock;
       // TODO get this from db config instead
       var config = require('../../config');
-      info.conf.primaryNameserver = config.ddns.primaryNameserver;
-      info.conf.nameservers = config.ddns.nameservers;
       // TODO get this from db config instead
       info.conf.privkey = config.privkey;
       info.conf.pubkey = config.pubkey;
       info.conf.redirects = config.redirects;
-      info.conf.ddns = config.ddns;
       worker.send(info);
     });
   }

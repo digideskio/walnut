@@ -9,12 +9,46 @@ console.info('arch:', process.arch);
 console.info('platform:', process.platform);
 console.info('\n\n\n[MASTER] Welcome to WALNUT!');
 
+function tryConf(pathname, def) {
+  try {
+    return require(pathname);
+  } catch(e) {
+    return def;
+  }
+}
+
 var path = require('path');
 var cluster = require('cluster');
 //var minWorkers = 2;
 var numCores = 2; // Math.max(minWorkers, require('os').cpus().length);
 var workers = [];
 var state = { firstRun: true };
+// TODO Should these be configurable? If so, where?
+// TODO communicate config with environment vars?
+var caddy = tryConf(
+  path.join('..', '..', 'config.caddy.json')
+, { conf: null        // __dirname + '/Caddyfile'
+  , bin: null         // '/usr/local/bin/caddy'
+  , sitespath: null   // path.join(__dirname, 'sites-enabled')
+  , locked: false     // true
+  }
+);
+var useCaddy = require('fs').existsSync(caddy.bin);
+var info = {
+  type: 'walnut.init'
+, conf: {
+    protocol: useCaddy ? 'http' : 'https'
+  , externalPort: 443
+  , externalPortInsecure: 80 // TODO externalInsecurePort
+  , localPort: process.argv[2] || (useCaddy ? 4080 : 443) // system / local network
+  , insecurePort: process.argv[3] || (useCaddy ? 80 : 80) // meh
+  , certPaths: useCaddy ? null : [
+      path.join(__dirname, '..', '..', 'certs', 'live')
+    , path.join(__dirname, '..', '..', 'letsencrypt', 'live')
+    ]
+  , trustProxy: useCaddy ? true : false
+  }
+};
 
 function fork() {
   if (workers.length < numCores) {
@@ -26,52 +60,14 @@ cluster.on('online', function (worker) {
   console.info('[MASTER] Worker ' + worker.process.pid + ' is online');
   fork();
 
-  var config = {
-    externalPort: 443                                       // world accessible
-  , externalPortInsecure: 80                                // world accessible
-  // TODO externalInsecurePort?
-  , locked: false // TODO XXX
-    // XXX
-    // TODO needs mappings from db
-    // TODO autoconfig Caddy caddy
-    // XXX
-  , caddy: {
-      conf: __dirname + '/Caddyfile'
-    , bin: '/usr/local/bin/caddy'
-    , sitespath: path.join(__dirname, 'sites-enabled')
-    }
-  };
-  var useCaddy = require('fs').existsSync(config.caddy.bin);
-  var caddy;
-
-  config.localPort = process.argv[2] || (useCaddy ? 4080 : 443);   // system / local network
-  config.insecurePort = process.argv[3] || (useCaddy ? 80 : 80);   // meh
   if (state.firstRun) {
     state.firstRun = false;
     if (useCaddy) {
-      caddy = require('../lib/spawn-caddy').create(config);
+      caddy = require('../lib/spawn-caddy').create(caddy);
       // relies on { localPort, locked }
-      caddy.spawn(config);
+      caddy.spawn(caddy);
     }
   }
-
-  // TODO XXX Should these be configurable? If so, where?
-  var certPaths = [
-    path.join(__dirname, '..', '..', 'certs', 'live')
-  , path.join(__dirname, '..', '..', 'letsencrypt', 'live')
-  ];
-  // TODO communicate config with environment vars?
-  var info = {
-    type: 'walnut.init'
-  , conf: {
-      protocol: useCaddy ? 'http' : 'https'
-    , externalPort: config.externalPort
-    , localPort: config.localPort
-    , insecurePort: config.insecurePort
-    , certPaths: useCaddy ? null : certPaths
-    , trustProxy: useCaddy ? true : false
-    }
-  };
 
   function touchMaster(msg) {
     if ('walnut.webserver.listening' !== msg.type) {
@@ -83,19 +79,19 @@ cluster.on('online', function (worker) {
     // calls init if init has not been called
     state.caddy = caddy;
     state.workers = workers;
-    require('../lib/master').touch(config, state).then(function (results) {
+    require('../lib/master').touch(info.conf, state).then(function (results) {
       //var memstore = results.memstore;
       var sqlstore = results.sqlstore;
       info.type = 'walnut.webserver.onrequest';
       // TODO let this load after server is listening
-      info.conf['org.oauth3.consumer'] = config['org.oauth3.consumer'];
-      info.conf['org.oauth3.provider'] = config['org.oauth3.provider'];
-      info.conf.keys = config.keys;
-      info.conf.memstoreSock = config.memstoreSock;
-      info.conf.sqlite3Sock = config.sqlite3Sock;
+      info.conf['org.oauth3.consumer'] = results['org.oauth3.consumer'];
+      info.conf['org.oauth3.provider'] = results['org.oauth3.provider'];
+      info.conf.keys = results.keys;
+      //info.conf.memstoreSock = config.memstoreSock;
+      //info.conf.sqlite3Sock = config.sqlite3Sock;
       // TODO get this from db config instead
-      info.conf.privkey = config.privkey;
-      info.conf.pubkey = config.pubkey;
+      //info.conf.privkey = config.privkey;
+      //info.conf.pubkey = config.pubkey;
       info.conf.redirects = [
         { "ip": false, "id": "*", "value": false } // default no-www
 
@@ -116,10 +112,10 @@ cluster.on('online', function (worker) {
       // TODO use sqlite3 or autogenerate ?
       info.conf.privkey = require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem', 'ascii');
       info.conf.pubkey = require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem.pub', 'ascii');
-  // keys
-  // letsencrypt
-  // com.example.provider
-  // com.example.consumer
+      // keys
+      // letsencrypt
+      // com.example.provider
+      // com.example.consumer
       worker.send(info);
     });
   }

@@ -4,9 +4,9 @@ module.exports.create = function (opts) {
   var id = '0';
   var promiseApp;
 
-  function createAndBindInsecure(message, cb) {
+  function createAndBindInsecure(lex, message, cb) {
     // TODO conditional if 80 is being served by caddy
-    require('../lib/insecure-server').create(message.conf.externalPort, message.conf.insecurePort, message, function (err, webserver) {
+    require('../lib/insecure-server').create(lex, message.conf.externalPort, message.conf.insecurePort, message, function (err, webserver) {
       console.info("#" + id + " Listening on http://" + webserver.address().address + ":" + webserver.address().port, '\n');
 
       // we are returning the promise result to the caller
@@ -14,9 +14,48 @@ module.exports.create = function (opts) {
     });
   }
 
+  function createLe(conf) {
+    var LEX = require('letsencrypt-express');
+    var lex = LEX.create({
+      configDir: conf.letsencrypt.configDir // i.e. __dirname + '/letsencrypt.config'
+    , approveRegistration: function (hostname, cb) {
+        cb(null, {
+          domains: [hostname]                 // TODO handle www and bare on the same cert
+        , email: conf.letsencrypt.email
+        , agreeTos: conf.letsencrypt.agreeTos
+        });
+        /*
+        letsencrypt.getConfig({ domains: [domain] }, function (err, config) {
+          if (!(config && config.checkpoints >= 0)) {
+            cb(err, null);
+            return;
+          }
+
+          cb(null, {
+            email: config.email
+                // can't remember which it is, but the pyconf is different that the regular variable
+          , agreeTos: config.tos || config.agree || config.agreeTos
+          , server: config.server || LE.productionServerUrl
+          , domains: config.domains || [domain]
+          });
+        });
+        */
+      }
+    });
+    //var letsencrypt = lex.letsencrypt;
+
+    return lex;
+  }
+
   function createAndBindServers(message, cb) {
+    var lex;
+
+    if (message.conf.letsencrypt) {
+      lex = createLe(message.conf);
+    }
+
     // NOTE that message.conf[x] will be overwritten when the next message comes in
-    require('../lib/local-server').create(message.conf.certPaths, message.conf.localPort, message, function (err, webserver) {
+    require('../lib/local-server').create(lex, message.conf.certPaths, message.conf.localPort, message, function (err, webserver) {
       if (err) {
         console.error('[ERROR] worker.js');
         console.error(err.stack);
@@ -27,7 +66,7 @@ module.exports.create = function (opts) {
 
       // we don't need time to pass, just to be able to return
       process.nextTick(function () {
-        createAndBindInsecure(message, cb);
+        createAndBindInsecure(lex, message, cb);
       });
 
       // we are returning the promise result to the caller
@@ -67,7 +106,7 @@ module.exports.create = function (opts) {
 
           process.removeListener('message', initWebServer);
 
-          resolve(require('../lib/worker').create(webserver, srvmsg));
+          resolve(require('../lib/worker').create(webserver, srvmsg.conf));
         }
 
         process.send({ type: 'walnut.webserver.listening' });

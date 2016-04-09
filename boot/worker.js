@@ -4,25 +4,93 @@ module.exports.create = function (opts) {
   var id = '0';
   var promiseApp;
 
-  function createAndBindInsecure(lex, message, cb) {
+  function createAndBindInsecure(lex, conf, getOrCreateHttpApp) {
     // TODO conditional if 80 is being served by caddy
-    require('../lib/insecure-server').create(lex, message.conf.externalPort, message.conf.insecurePort, message, function (err, webserver) {
-      console.info("#" + id + " Listening on http://" + webserver.address().address + ":" + webserver.address().port, '\n');
 
-      // we are returning the promise result to the caller
-      return cb(null, webserver, null, message);
+    var appPromise = null;
+    var app = null;
+    var http = require('http');
+    var insecureServer = http.createServer();
+
+    function onRequest(req, res) {
+      if (app) {
+        app(req, res);
+        return;
+      }
+
+      if (!appPromise) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end('{ "error": { "code": "E_SANITY_FAIL", "message": "should have an express app, but didn\'t" } }');
+        return;
+      }
+
+      appPromise.then(function (_app) {
+        appPromise = null;
+        app = _app;
+        app(req, res);
+      });
+    }
+
+    insecureServer.listen(conf.insecurePort, function () {
+      console.info("#" + id + " Listening on http://"
+        + insecureServer.address().address + ":" + insecureServer.address().port, '\n');
+      appPromise = getOrCreateHttpApp(null, insecureServer);
+
+      if (!appPromise) {
+        throw new Error('appPromise returned nothing');
+      }
+    });
+
+    insecureServer.on('request', onRequest);
+  }
+
+  function walkLe(domainname) {
+    var PromiseA = require('bluebird');
+    var fs = PromiseA.promisifyAll(require('fs'));
+    var path = require('path');
+    var parts = domainname.split('.'); //.replace(/^www\./, '').split('.');
+    var configname = parts.join('.') + '.json';
+    var configpath = path.join(__dirname, '..', '..', 'config', configname);
+
+    if (parts.length < 2) {
+      return PromiseA.resolve(null);
+    }
+
+    // TODO configpath a la varpath
+    return fs.readFileAsync(configpath, 'utf8').then(function (text) {
+      var data = JSON.parse(text);
+      data.name = configname;
+      return data;
+    }, function (/*err*/) {
+      parts.shift();
+      return walkLe(parts.join('.'));
     });
   }
 
-  function createLe(conf) {
+  function createLe(lexConf, conf) {
     var LEX = require('letsencrypt-express');
     var lex = LEX.create({
-      configDir: conf.letsencrypt.configDir // i.e. __dirname + '/letsencrypt.config'
+      configDir: lexConf.configDir // i.e. __dirname + '/letsencrypt.config'
     , approveRegistration: function (hostname, cb) {
-        cb(null, {
-          domains: [hostname]                 // TODO handle www and bare on the same cert
-        , email: conf.letsencrypt.email
-        , agreeTos: conf.letsencrypt.agreeTos
+        // TODO cache/report unauthorized
+        if (!hostname) {
+          cb(new Error("[lex.approveRegistration] undefined hostname"), null);
+          return;
+        }
+
+        walkLe(hostname).then(function (leAuth) {
+          // TODO should still check dns for hostname (and mx for email)
+          if (leAuth && leAuth.email && leAuth.agreeTos) {
+            cb(null, {
+              domains: [hostname]                 // TODO handle www and bare on the same cert
+            , email: leAuth.email
+            , agreeTos: leAuth.agreeTos
+            });
+          }
+          else {
+            // TODO report unauthorized
+            cb(new Error("Valid LetsEncrypt config with email and agreeTos not found for '" + hostname + "'"), null);
+          }
         });
         /*
         letsencrypt.getConfig({ domains: [domain] }, function (err, config) {
@@ -42,81 +110,92 @@ module.exports.create = function (opts) {
         */
       }
     });
-    //var letsencrypt = lex.letsencrypt;
+    conf.letsencrypt = lex.letsencrypt;
+    conf.lex = lex;
+    conf.walkLe = walkLe;
 
     return lex;
   }
 
-  function createAndBindServers(message, cb) {
+  function createAndBindServers(conf, getOrCreateHttpApp) {
     var lex;
 
-    if (message.conf.letsencrypt) {
-      lex = createLe(message.conf);
+    if (conf.lexConf) {
+      lex = createLe(conf.lexConf, conf);
     }
 
     // NOTE that message.conf[x] will be overwritten when the next message comes in
-    require('../lib/local-server').create(lex, message.conf.certPaths, message.conf.localPort, message, function (err, webserver) {
+    require('./local-server').create(lex, conf.certPaths, conf.localPort, conf, function (err, webserver) {
       if (err) {
         console.error('[ERROR] worker.js');
         console.error(err.stack);
         throw err;
       }
 
-      console.info("#" + id + " Listening on " + message.conf.protocol + "://" + webserver.address().address + ":" + webserver.address().port, '\n');
+      console.info("#" + id + " Listening on " + conf.protocol + "://" + webserver.address().address + ":" + webserver.address().port, '\n');
 
       // we don't need time to pass, just to be able to return
       process.nextTick(function () {
-        createAndBindInsecure(lex, message, cb);
+        createAndBindInsecure(lex, conf, getOrCreateHttpApp);
       });
 
       // we are returning the promise result to the caller
-      return cb(null, null, webserver, message);
+      return getOrCreateHttpApp(null, null, webserver, conf);
     });
   }
 
   //
   // Worker Mode
   //
-  function waitForConfig(message) {
-    if ('walnut.init' !== message.type) {
+  function waitForConfig(realMessage) {
+    if ('walnut.init' !== realMessage.type) {
       console.warn('[Worker] 0 got unexpected message:');
-      console.warn(message);
+      console.warn(realMessage);
       return;
     }
 
+    var conf = realMessage.conf;
     process.removeListener('message', waitForConfig);
 
     // NOTE: this callback must return a promise for an express app
-    createAndBindServers(message, function (err, insecserver, webserver, oldMessage) {
-      // TODO deep merge new message into old message
-      Object.keys(message.conf).forEach(function (key) {
-        oldMessage.conf[key] = message.conf[key];
-      });
+
+    function getExpressApp(err, insecserver, webserver/*, newMessage*/) {
       var PromiseA = require('bluebird');
+
       if (promiseApp) {
         return promiseApp;
       }
+
       promiseApp = new PromiseA(function (resolve) {
-        function initWebServer(srvmsg) {
+        function initHttpApp(srvmsg) {
           if ('walnut.webserver.onrequest' !== srvmsg.type) {
-            console.warn('[Worker] 1 got unexpected message:');
+            console.warn('[Worker] [onrequest] unexpected message:');
             console.warn(srvmsg);
             return;
           }
 
-          process.removeListener('message', initWebServer);
+          process.removeListener('message', initHttpApp);
 
-          resolve(require('../lib/worker').create(webserver, srvmsg.conf));
+          if (srvmsg.conf) {
+            Object.keys(srvmsg.conf).forEach(function (key) {
+              conf[key] = srvmsg.conf[key];
+            });
+          }
+
+          resolve(require('../lib/worker').create(webserver, conf));
         }
 
         process.send({ type: 'walnut.webserver.listening' });
-        process.on('message', initWebServer);
+        process.on('message', initHttpApp);
       }).then(function (app) {
         console.info('[Worker Ready]');
         return app;
       });
+
       return promiseApp;
-    });
+    }
+
+    createAndBindServers(conf, getExpressApp);
   }
 
   //
@@ -124,11 +203,13 @@ module.exports.create = function (opts) {
   //
   if (opts) {
     // NOTE: this callback must return a promise for an express app
-    createAndBindServers(opts, function (err, insecserver, webserver/*, message*/) {
+    createAndBindServers(opts, function (err, insecserver, webserver/*, conf*/) {
       var PromiseA = require('bluebird');
+
       if (promiseApp) {
         return promiseApp;
       }
+
       promiseApp = new PromiseA(function (resolve) {
         opts.getConfig(function (srvmsg) {
           resolve(require('../lib/worker').create(webserver, srvmsg));
@@ -137,6 +218,7 @@ module.exports.create = function (opts) {
         console.info('[Standalone Ready]');
         return app;
       });
+
       return promiseApp;
     });
   } else {

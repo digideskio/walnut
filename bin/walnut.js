@@ -62,4 +62,7 @@ function eagerLoad() {
   });
 }
 
-setTimeout(eagerLoad, 100);
+// this isn't relevant to do in the master process, duh
+if (false) {
+  setTimeout(eagerLoad, 100);
+}

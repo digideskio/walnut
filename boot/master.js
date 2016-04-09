@@ -25,28 +25,44 @@ var workers = [];
 var state = { firstRun: true };
 // TODO Should these be configurable? If so, where?
 // TODO communicate config with environment vars?
+var walnut = tryConf(
+  path.join('..', '..', 'config.walnut')
+, { externalPort: 443
+  , externalInsecurePort: 80
+  , certspath: path.join(__dirname, '..', '..', 'certs', 'live')
+  }
+);
 var caddy = tryConf(
-  path.join('..', '..', 'config.caddy.json')
-, { conf: null        // __dirname + '/Caddyfile'
+  path.join('..', '..', 'config.caddy')
+, { conf: path.join(__dirname, '..', '..', 'Caddyfile')
   , bin: null         // '/usr/local/bin/caddy'
   , sitespath: null   // path.join(__dirname, 'sites-enabled')
   , locked: false     // true
   }
 );
-var useCaddy = require('fs').existsSync(caddy.bin);
+var letsencrypt = tryConf(
+  path.join('..', '..', 'config.letsencrypt')
+, { configDir: path.join(__dirname, '..', '..', 'letsencrypt')
+  , email: null
+  , agreeTos: false
+  }
+);
+var useCaddy = caddy.bin && require('fs').existsSync(caddy.bin);
 var info = {
   type: 'walnut.init'
 , conf: {
     protocol: useCaddy ? 'http' : 'https'
-  , externalPort: 443
-  , externalPortInsecure: 80 // TODO externalInsecurePort
-  , localPort: process.argv[2] || (useCaddy ? 4080 : 443) // system / local network
-  , insecurePort: process.argv[3] || (useCaddy ? 80 : 80) // meh
+  , externalPort: walnut.externalPort
+  , externalPortInsecure: walnut.externalInsecurePort         // TODO externalInsecurePort
+  , localPort: walnut.localPort || (useCaddy ? 4080 : 443)    // system / local network
+  , insecurePort: walnut.insecurePort || (useCaddy ? 80 : 80) // meh
   , certPaths: useCaddy ? null : [
-      path.join(__dirname, '..', '..', 'certs', 'live')
-    , path.join(__dirname, '..', '..', 'letsencrypt', 'live')
+      walnut.certspath
+    , path.join(letsencrypt.configDir, 'live')
     ]
   , trustProxy: useCaddy ? true : false
+  , lexConf: letsencrypt
+  , varpath: path.join(__dirname, '..', '..', 'var')
   }
 };
 
@@ -67,6 +83,7 @@ cluster.on('online', function (worker) {
       // relies on { localPort, locked }
       caddy.spawn(caddy);
     }
+    // TODO dyndns in master?
   }
 
   function touchMaster(msg) {
@@ -76,47 +93,11 @@ cluster.on('online', function (worker) {
       return;
     }
 
-    // calls init if init has not been called
     state.caddy = caddy;
     state.workers = workers;
-    require('../lib/master').touch(info.conf, state).then(function (results) {
-      //var memstore = results.memstore;
-      var sqlstore = results.sqlstore;
-      info.type = 'walnut.webserver.onrequest';
-      // TODO let this load after server is listening
-      info.conf['org.oauth3.consumer'] = results['org.oauth3.consumer'];
-      info.conf['org.oauth3.provider'] = results['org.oauth3.provider'];
-      info.conf.keys = results.keys;
-      //info.conf.memstoreSock = config.memstoreSock;
-      //info.conf.sqlite3Sock = config.sqlite3Sock;
-      // TODO get this from db config instead
-      //info.conf.privkey = config.privkey;
-      //info.conf.pubkey = config.pubkey;
-      info.conf.redirects = [
-        { "ip": false, "id": "*", "value": false } // default no-www
-
-      , { "ip": false, "id": "daplie.domains", "value": null }
-      , { "ip": false, "id": "*.daplie.domains", "value": false }
-      , { "ip": false, "id": "no.daplie.domains", "value": false }
-      , { "ip": false, "id": "*.no.daplie.domains", "value": false }
-      , { "ip": false, "id": "ns2.daplie.domains", "value": false }
-
-      , { "ip": true, "id": "maybe.daplie.domains", "value": null }
-      , { "ip": true, "id": "*.maybe.daplie.domains", "value": null }
-
-      , { "ip": true, "id": "www.daplie.domains", "value": null }
-      , { "ip": true, "id": "yes.daplie.domains", "value": true }
-      , { "ip": true, "id": "*.yes.daplie.domains", "value": true }
-      , { "ip": true, "id": "ns1.daplie.domains", "value": false }
-      ];
-      // TODO use sqlite3 or autogenerate ?
-      info.conf.privkey = require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem', 'ascii');
-      info.conf.pubkey = require('fs').readFileSync(__dirname + '/../../' + '/nsx.redirect-www.org.key.pem.pub', 'ascii');
-      // keys
-      // letsencrypt
-      // com.example.provider
-      // com.example.consumer
-      worker.send(info);
+    // calls init if init has not been called
+    require('../lib/master').touch(info.conf, state).then(function (newConf) {
+      worker.send({ type: 'walnut.webserver.onrequest', conf: newConf });
     });
   }
 

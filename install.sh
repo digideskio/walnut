@@ -1,6 +1,8 @@
 #!/bin/bash
 
-sudo mkdir -p /srv/walnut/{certs,core,letsencrypt,lib,config}
+sudo mkdir -p /srv/walnut/{certs,core,letsencrypt,lib,etc,config}
+sudo mkdir -p /srv/walnut/etc/org.oauth3.consumer
+sudo mkdir -p /srv/walnut/etc/org.oauth3.provider
 sudo mkdir -p /srv/walnut/packages/{api,pages,services}
 sudo chown -R $(whoami):$(whoami) /srv/walnut
 

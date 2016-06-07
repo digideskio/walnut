@@ -63,6 +63,7 @@ var info = {
   , trustProxy: useCaddy ? true : false
   , lexConf: letsencrypt
   , varpath: path.join(__dirname, '..', '..', 'var')
+  , etcpath: path.join(__dirname, '..', '..', 'etc')
   }
 };
 

@@ -46,6 +46,9 @@ module.exports.create = function (opts) {
 
   function walkLe(domainname) {
     var PromiseA = require('bluebird');
+    if (!domainname) {
+      return PromiseA.reject(new Error('no domainname given for walkLe'));
+    }
     var fs = PromiseA.promisifyAll(require('fs'));
     var path = require('path');
     var parts = domainname.split('.'); //.replace(/^www\./, '').split('.');
